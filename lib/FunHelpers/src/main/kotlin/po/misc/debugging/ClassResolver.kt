@@ -4,9 +4,13 @@ import po.misc.context.CTX
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.text_span.StyledPair
 import po.misc.debugging.models.ClassInfo
 import po.misc.debugging.models.InstanceInfo
+import po.misc.debugging.models.InstanceMeta
 import po.misc.exceptions.extractTrace
+import po.misc.interfaces.named.Named
+import po.misc.interfaces.named.NamedComponent
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
@@ -14,11 +18,28 @@ import kotlin.reflect.KClass
 
 interface ClassResolver {
 
-
     fun classInfo(receiver: Any, typeToken: TypeToken<*>? = null): ClassInfo = Companion.classInfo(receiver, typeToken)
 
-    companion object {
+    open class  InstanceHelper{
 
+        fun instanceMeta(anyInstance: Any?): InstanceMeta{
+
+           return anyInstance?.let {receiver->
+               val name = when(receiver){
+                    is NamedComponent ->{
+                       receiver.displayName
+                    }
+                   is Named->  StyledPair(receiver.name, receiver.name)
+                   else -> StyledPair(receiver::class.simpleOrAnon)
+                }
+                InstanceMeta(name, receiver.hashCode(), receiver::class)
+            }?:run {
+                InstanceMeta(StyledPair("Null"), 0, null)
+            }
+        }
+    }
+
+    companion object : InstanceHelper() {
         fun instanceName(receiver: Any?): String {
             return when (receiver) {
                 is Component -> {
@@ -37,13 +58,11 @@ interface ClassResolver {
                 }
             }
         }
-
         fun instanceInfo(receiver: Any): InstanceInfo {
             val name = instanceName(receiver)
             val classInfo = classInfo(receiver)
            return  InstanceInfo(name,receiver.hashCode(),  classInfo)
         }
-
         fun classInfo(receiver: Any, typeToken: TypeToken<*>? = null): ClassInfo {
             return when (val kClass = receiver::class) {
                 is Function<*> -> {
@@ -52,8 +71,6 @@ interface ClassResolver {
                 else -> ClassInfo(kClass)
             }
         }
-
-
         fun classInfo(receiver: TraceableContext, resolveTrace: Boolean): ClassInfo{
            val classInfo = when(val kClass = receiver::class){
                 is Function<*> -> ClassInfo(kClass)
@@ -65,7 +82,6 @@ interface ClassResolver {
             }
             return classInfo
         }
-
         fun classInfo(kClass: KClass<out Function<*>>, hashCode: Int? = null): ClassInfo{
             val isSuspended = kClass.supertypes.any { it.toString().contains("Continuation") }
             val hasReceiver = when {
@@ -74,12 +90,12 @@ interface ClassResolver {
             }
             return ClassInfo(kClass, isSuspended, hasReceiver)
         }
-
         fun resolveInstance(context: Any): InstanceInfo{
             val name = instanceName(context)
             val classInfo = classInfo(context)
             return InstanceInfo(name, context.hashCode(), classInfo)
         }
+
     }
 }
 

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
-import po.misc.data.NameValue
+import po.misc.interfaces.named.NameValue
 
 class TestPropertyMapper {
 

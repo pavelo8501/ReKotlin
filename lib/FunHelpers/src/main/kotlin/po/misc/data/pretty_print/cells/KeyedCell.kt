@@ -5,24 +5,22 @@ import po.misc.callbacks.callable.ProviderProperty
 import po.misc.collections.asList
 import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.loader.DataLoader
-import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.loader.toElementProvider
 import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.Style
-import po.misc.data.strings.FormattedText
-import po.misc.data.strings.StringifyOptions
+import po.misc.data.pretty_print.parts.rendering.CellParameters
+import po.misc.data.strings.ElementOptions
 import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
 import po.misc.data.styles.SpecialChars
-import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.FormattedText
+import po.misc.data.text_span.MutablePair
 import po.misc.functions.CallableKey
-import po.misc.reflection.displayName
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
-import po.misc.types.token.tokenOf
 import kotlin.reflect.KProperty0
 import kotlin.reflect.KProperty1
 
@@ -44,7 +42,7 @@ class KeyedCell<T>(
     init {
         dataLoader.apply(callable)
         dataLoader[CallableKey.Property]?.let {
-            keyText = it.displayName
+            keyText = it.displayName.styled
         }
     }
 
@@ -55,20 +53,29 @@ class KeyedCell<T>(
         return dataLoader.resolveList(receiver)
     }
 
-    override fun render(source: T, opts: CellOptions?): String {
+    private fun resolveReceiver(source: T, opts: CellOptions?):RenderRecord{
         if(!areOptionsExplicit){
             currentRenderOpts = toOptions(opts, currentRenderOpts)
         }
         val valueList =  resolveValues(source)
-        val formatted =  FormattedText()
+        val styled = MutablePair()
         valueList.forEach{
-           val pair = it.stringify()
-           formatted.add(pair)
+            val pair = it.stringify()
+            styled.append(pair)
         }
-        val result = formatted.joinSubEntries(StringifyOptions.ElementOptions(SpecialChars.EMPTY))
-        return finalizeRender(RenderRecord(result))
+
+        return keyText?.let {
+            createKeyed(styled, it)
+        }?:run {
+            RenderRecord(styled.copyAsStacked(), null, null)
+        }
     }
 
+    override fun render(source: T, opts: CellOptions?): String {
+
+        val renderRecord = resolveReceiver(source, opts)
+        return finalizeRender(renderRecord)
+    }
 
     fun render(source:T, optionBuilder: (Options) -> Unit): String{
         optionBuilder.invoke(currentRenderOpts)
@@ -76,7 +83,13 @@ class KeyedCell<T>(
         return render(source)
     }
 
+    override fun CellParameters.scopedRender(receiver: T): RenderRecord {
+        val renderRecord = resolveReceiver(receiver, null)
+        return finalizeScopedRender(renderRecord)
+    }
+
     override fun applyOptions(opts: CellOptions?): KeyedCell<T>{
+
         val options = PrettyHelper.toOptionsOrNull(opts)
         if(options != null){
             setOptions(options)

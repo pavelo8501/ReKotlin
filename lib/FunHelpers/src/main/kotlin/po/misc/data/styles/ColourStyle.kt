@@ -34,6 +34,8 @@ data class ColourPallet(
     private val color: Colour,
     private val bgColour: BGColour,
 ):StyleCode{
+
+    override val name: String = "ColourPallet"
     override val ordinal: Int get() = color.ordinal + bgColour.ordinal
     override val code: String get() {
         if(color == Colour.Default){
@@ -51,6 +53,9 @@ data class StyleTheme(
     private val color: Colour,
     private val bgColour: BGColour,
 ):StyleCode{
+
+
+    override val name: String = "StyleTheme"
 
     internal constructor(color: Colour, bgColour: BGColour):this(TextStyle.Regular, color, bgColour)
 

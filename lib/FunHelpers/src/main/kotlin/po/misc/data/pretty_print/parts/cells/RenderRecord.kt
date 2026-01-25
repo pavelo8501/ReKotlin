@@ -1,80 +1,59 @@
 package po.misc.data.pretty_print.parts.cells
 
-import po.misc.data.pretty_print.parts.options.ExtendedString
-import po.misc.data.strings.FormattedPair
+import po.misc.data.pretty_print.parts.common.ExtendedString
+import po.misc.data.pretty_print.parts.common.Separator
+import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.TextSpan
+import po.misc.data.text_span.prepend
+
 
 class RenderRecord(
-    override var plain: String,
-    override var formatted:String = plain
-): FormattedPair {
+    val value: MutablePair,
+    val key : MutablePair?,
+    separatorString: ExtendedString?
+): TextSpan {
 
-    constructor( value: FormattedPair):this(value.plain, value.formatted)
-    private var  keyValueSeparator: ExtendedString? = null
+    val separator: Separator = Separator(separatorString)
 
-    var plainValue:String = plain
-        private set
-
-    var formattedValue:String = formatted
-        private set
-
-    var plainKey:String = ""
-        private  set(value) {
-            field = value
-            plain = "$value${keyValueSeparator?:""}$plain"
+    override val plain: String get() {
+      return  key?.let {
+            "${it.plain}${separator}${value.plain}"
+        } ?: run {
+            value.plain
         }
-
-    var formattedKey:String = ""
-       private set(value) {
-            formatted = "${value}$keyValueSeparator$formatted"
-            field = value
+    }
+    override val styled: String get() {
+       return key?.let {
+            "${it.styled}${separator}${value.styled}"
+        } ?: run {
+            value.styled
         }
-
-    val plainKeySize : Int get() = plainKey.length
-    val plainValueSize : Int get() = plainValue.length
-    override val totalPlainLength: Int get() =  plain.length
-    val hasKey: Boolean get() = plainKey.isNotEmpty()
-
-    fun addKey(key:FormattedPair, separator: ExtendedString):RenderRecord{
-        keyValueSeparator = separator
-        plainKey = key.plain
-        formattedKey = key.formatted
-        return this
     }
+    val hasKey: Boolean = key != null
 
-    fun setKey(plainText:String,  formattedText: String){
-        plain = plainValue
-        formatted = formattedValue
-        plainKey = plainText
-        formattedKey = formattedText
+    fun appendKey(text: String): Unit{
+        key?.append(text)
     }
-
-    fun setValue(plainText:String,  formattedText: String){
-        if(hasKey){
-            plain = "${plainKey}${keyValueSeparator?:""}$plainText"
-            formatted = "${formattedKey}${keyValueSeparator?:""}$formattedText"
+    fun prependKey(text: String): Unit{
+        key?.prepend(text)
+    }
+    fun append(text: String){
+        value.append(text)
+    }
+    fun prepend(text: String){
+        if(key != null){
+            prependKey(text)
         }else{
-            plain =  plainText
-            formatted = formattedText
+            value.prepend(text)
         }
-        plainValue = plainText
-        formattedValue = formattedText
     }
-
-    fun append(plainText:String){
-        plain = "${plain}$plainText"
-        formatted = "${formatted}$plainText"
+    fun change(plainText: String, styledText:String = plainText){
+        if(key != null){
+            key.change(plainText, styledText)
+        }else{
+            value.change(plainText, styledText)
+        }
     }
-
-    fun prepend(plainText:String){
-        plain = "${plainText}$plain"
-        formatted = "${plainText}$formatted"
-    }
-
-    fun write(plainText: String,  formatedText: String):RenderRecord{
-        plain = plainText
-        formatted = formatedText
-        return this
-    }
-
-    override fun toString(): String = formatted
+    override fun toString(): String = plain
 }

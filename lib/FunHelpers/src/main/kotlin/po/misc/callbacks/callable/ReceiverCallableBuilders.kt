@@ -18,11 +18,9 @@ inline fun <reified T, reified V> T.asProvider(noinline provider : () ->  V):Pro
     return ProviderCallable(TypeToken<T>(), TypeToken<V>(),  provider)
 }
 
-
-inline fun <reified T, reified R> KProperty1<T, R>.asPropertyCallable(): PropertyCallable<T, R> {
+inline fun <reified T, reified R> KProperty1<T, R>.toCallable(): PropertyCallable<T, R> {
     return PropertyCallable<T,R>(this)
 }
-
-inline fun <T, reified R> KProperty1<T, R>.asPropertyCallable(sourceType: TypeToken<T>): PropertyCallable<T, R> {
+inline fun <T, reified R> KProperty1<T, R>.toCallable(sourceType: TypeToken<T>): PropertyCallable<T, R> {
     return PropertyCallable<T, R>(sourceType, this)
 }

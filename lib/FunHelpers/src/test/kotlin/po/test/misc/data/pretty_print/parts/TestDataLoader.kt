@@ -2,8 +2,8 @@ package po.test.misc.data.pretty_print.parts
 
 import po.misc.callbacks.callable.CallableRepositoryHub
 import po.misc.callbacks.callable.asFunCallable
-import po.misc.callbacks.callable.asPropertyCallable
 import po.misc.callbacks.callable.asProvider
+import po.misc.callbacks.callable.toCallable
 import po.misc.collections.repeatBuild
 import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.loader.ListProvider
@@ -12,14 +12,13 @@ import po.misc.data.pretty_print.parts.loader.toElementProvider
 import po.misc.data.pretty_print.parts.loader.toListProvider
 import po.misc.functions.CallableKey
 import po.misc.types.token.resolvesValueOf
-import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestDataLoader : PrettyTestBase(), CallableRepositoryHub<TestDataLoader, String> {
+class TestDataLoader: CallableRepositoryHub<TestDataLoader, String> {
 
     private val listOfStrings = listOf("String 1","String 2")
     private fun listFunction(test:TestDataLoader): List<String> = listOfStrings
@@ -62,7 +61,7 @@ class TestDataLoader : PrettyTestBase(), CallableRepositoryHub<TestDataLoader, S
         assertNotNull(stringProvider[CallableKey.Resolver]){
             assertFalse { it.isCollection }
         }
-        val stringProperty =  TestDataLoader::string.asPropertyCallable()
+        val stringProperty =  TestDataLoader::string.toCallable()
         assertEquals(TestDataLoader::class, stringProperty.sourceType.kClass)
         assertEquals(String::class, stringProperty.receiverType.effectiveClass)
         assertFalse { stringProperty.isCollection }

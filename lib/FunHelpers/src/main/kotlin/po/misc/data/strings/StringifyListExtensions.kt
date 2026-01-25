@@ -1,19 +1,21 @@
 package po.misc.data.strings
 
 import po.misc.data.styles.Colour
+import po.misc.data.text_span.FormattedText
+import po.misc.data.text_span.TextSpan
 
 
 @PublishedApi
 internal fun buildStringCollection(
     list: Collection<Any?>,
     colour: Colour?,
-): FormattedPair {
+): TextSpan {
 
    return if(list.isNotEmpty()){
         val rootEntry = list.first().stringify(colour) as FormattedText
         list.drop(1).forEach {
            val result =  it.stringify(colour) as FormattedText
-            rootEntry.add(result)
+          //  rootEntry.add(result)
         }
         rootEntry
     }else{
@@ -23,14 +25,14 @@ internal fun buildStringCollection(
 
 fun Collection<*>.stringify(
     colour: Colour? = null
-):FormattedPair = buildStringCollection(this, colour = colour)
+):TextSpan = buildStringCollection(this, colour = colour)
 
 
 fun Array<*>.stringify(
     colour: Colour? = null
-):FormattedPair = buildStringCollection(this.toList(), colour = colour)
+):TextSpan = buildStringCollection(this.toList(), colour = colour)
 
 fun Array<*>.stringifyList(
     colour: Colour? = null
-):FormattedPair = buildStringCollection(this.toList(), colour = colour)
+):TextSpan = buildStringCollection(this.toList(), colour = colour)
 

@@ -1,11 +1,10 @@
 package po.misc.data.pretty_print.formatters
 
 import po.misc.data.pretty_print.parts.cells.RenderRecord
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.rendering.CellParameters
 import po.misc.data.pretty_print.parts.rendering.StyleParameters
-import po.misc.data.strings.EditablePair
-import po.misc.data.strings.FormattedText
-import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.EditablePair
+import po.misc.data.text_span.FormattedText
 import po.misc.types.token.TypeToken
 
 
@@ -14,18 +13,18 @@ interface FormatterPlugin{
     val dynamic: Boolean
 }
 interface LayoutFormatter: FormatterPlugin{
-    fun modify(pair: EditablePair, parameters: RenderParameters)
-    fun modify(text: String, parameters: RenderParameters): String{
+    fun modify(pair: EditablePair, parameters: CellParameters)
+    fun modify(text: String, parameters: CellParameters): String{
         val pair = FormattedText(text)
         modify(pair, parameters)
-        return pair.formatted
+        return pair.styled
     }
-    fun modify(record : RenderRecord, parameters: RenderParameters)
+    fun modify(record : RenderRecord, parameters: CellParameters)
 
 }
 
 interface StyleFormatter: FormatterPlugin{
-    fun modify(formattedPair: EditablePair, styleParameters : StyleParameters)
+    fun modify(TextSpan: EditablePair, styleParameters : StyleParameters)
     fun modify(record: RenderRecord, styleParameters : StyleParameters)
 
 }
@@ -33,10 +32,10 @@ interface StyleFormatter: FormatterPlugin{
 interface DynamicStyleFormatter<T>: FormatterPlugin {
     val type: TypeToken<T>
     override val dynamic: Boolean get() = true
-    fun modify(formattedPair: EditablePair, parameter: T)
+    fun modify(TextSpan: EditablePair, parameter: T)
     fun modify(text: String, parameter: T): String?{
         val pair = FormattedText(text)
         modify(pair.plain, parameter)
-        return pair.formatted
+        return pair.styled
     }
 }

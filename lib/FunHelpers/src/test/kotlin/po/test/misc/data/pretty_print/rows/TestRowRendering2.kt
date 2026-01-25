@@ -9,7 +9,7 @@ import kotlin.test.Test
 
 class TestRowRendering2 : PrettyTest<TestRowRendering2>(enableOutput =  true) {
 
-    override val type: TypeToken<TestRowRendering2> = tokenOf()
+    override val receiverType: TypeToken<TestRowRendering2> = tokenOf()
 
     val headerText1: String = "header_text_1"
     val auxText: String = "Aux_Text"

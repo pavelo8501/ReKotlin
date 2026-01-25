@@ -1,7 +1,7 @@
 package po.misc.dsl.configurator
 
+import po.misc.interfaces.named.NameValue
 
-import po.misc.data.NameValue
 
 enum class ConfigPriority(override val value: Int) : NameValue {
 

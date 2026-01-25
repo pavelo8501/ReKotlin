@@ -49,7 +49,7 @@ abstract class StructuredBase(
         }
 
     companion object : Templated<StructuredBase> {
-        override val type: TypeToken<StructuredBase> = tokenOf<StructuredBase>()
+        override val receiverType: TypeToken<StructuredBase> = tokenOf<StructuredBase>()
         private val nameOptions =  buildOption(CellPresets.KeylessProperty){
             style(TextStyle.Regular, Colour.Blue)
         }

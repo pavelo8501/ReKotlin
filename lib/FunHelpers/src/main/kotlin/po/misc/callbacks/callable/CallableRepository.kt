@@ -1,10 +1,9 @@
 package po.misc.callbacks.callable
 
 import po.misc.collections.putOverwriting
-import po.misc.data.Named
-import po.misc.data.NamedComponent
 import po.misc.data.styles.Colour
 import po.misc.functions.CallableKey
+import po.misc.interfaces.named.NamedComponent
 import po.misc.types.token.CastOptions
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TokenizedResolver
@@ -15,6 +14,7 @@ import kotlin.reflect.KProperty1
 
 
 interface CallableCollection<T, R>{
+
     val parameterType: TypeToken<T>
     val resultType: TypeToken<R>
     val callableList : List<ReceiverCallable<T, R>>
@@ -50,7 +50,7 @@ abstract class CallableRepositoryBase<T, V>(
     val  repositoryName : String,
     override val sourceType: TypeToken<T>,
     override val receiverType: TypeToken<V>,
-): CallableStorage<T, V> {
+): CallableStorage<T, V>, CallableCollection<T, V> {
 
     val callPriority: MutableList<CallableKey> = mutableListOf(CallableKey.Provider, CallableKey.Property, CallableKey.Resolver)
 
@@ -101,7 +101,6 @@ abstract class CallableRepositoryBase<T, V>(
         return callPriority.firstNotNullOf { callables[it] }.call(receiver)
     }
     fun clear(): Unit = callablesMapBacking.clear()
-
 
 }
 

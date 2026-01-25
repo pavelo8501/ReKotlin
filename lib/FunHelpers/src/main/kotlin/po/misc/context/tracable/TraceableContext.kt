@@ -95,7 +95,7 @@ interface TraceableContext  : StackTracer {
 
     /**
      * Emits an exception trace as a [NotificationTopic.Exception].
-     * The [Throwable] is converted into a formatted text trace automatically.
+     * The [Throwable] is converted into a styled text trace automatically.
      */
     fun notify(subject: String, throwable: Throwable): Loggable =
         notify(subject, throwable.throwableToText(), NotificationTopic.Exception)

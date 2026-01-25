@@ -2,8 +2,8 @@ package po.misc.callbacks.callable
 
 import po.misc.collections.asList
 import po.misc.collections.lambda_map.CallableParameter
-import po.misc.data.Named
-import po.misc.data.NamedComponent
+import po.misc.data.text_span.StyledPair
+import po.misc.data.text_span.TextSpan
 import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.debugging.stack_tracer.extractTrace
 import po.misc.debugging.stack_tracer.reports.CallSiteReport
@@ -14,6 +14,7 @@ import po.misc.functions.PropertyKind
 import po.misc.functions.PropertyKind.Mutable
 import po.misc.functions.PropertyKind.Readonly
 import po.misc.functions.Sync
+import po.misc.interfaces.named.NamedComponent
 import po.misc.reflection.displayName
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TokenizedResolver
@@ -70,7 +71,8 @@ sealed class FunctionCallableBase<T, R>(
     val options: LambdaOptions = LambdaOptions.Listen
     override val callableType: CallableType = Sync
     override val name: String = callableMeta.functionName
-    override val displayName: String = callableMeta.displayName
+    override val displayName: TextSpan = StyledPair(name)
+
     protected fun makeCall(onError: ((CallSiteReport) -> Unit)? = null,  block: ()-> R):R{
         return try {
             block.invoke()
@@ -145,7 +147,7 @@ class PropertyCallable<T, R>(
     override var callableType: PropertyKind = Readonly
 
     override val name: String = property.name
-    override val displayName: String = property.displayName
+    override val displayName: StyledPair =  StyledPair(name,  property.displayName)
     override val callableList: List<PropertyCallable<T, R>> = this.asList()
 
     init {
@@ -186,7 +188,7 @@ class ProviderProperty<T, R>(
     override var callableType: PropertyKind = Readonly
 
     override val name: String = property.name
-    override val displayName: String = property.displayName
+    override val displayName: StyledPair = StyledPair(name, property.displayName)
     override val callableList: List<ProviderProperty<T, R>> = this.asList()
 
     init {

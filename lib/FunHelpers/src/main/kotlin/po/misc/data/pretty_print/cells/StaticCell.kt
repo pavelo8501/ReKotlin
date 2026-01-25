@@ -5,9 +5,10 @@ import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.PrettyHelper
-import po.misc.data.strings.FormattedText
+import po.misc.data.pretty_print.parts.rendering.CellParameters
 import po.misc.data.strings.appendParam
 import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.MutablePair
 import po.misc.types.token.TypeToken
 
 
@@ -16,22 +17,24 @@ class StaticCell(
     opts: CellOptions? = null
 ): PrettyCellBase<Unit>(PrettyHelper.toOptions(opts, plainText), TypeToken<Unit>()), StaticRenderingCell, SourceLessCell, TextStyler, PrettyHelper {
 
-    internal fun resolve(): RenderRecord{
-        return RenderRecord(FormattedText(text))
-    }
-
     override fun render(opts: CellOptions?): String {
+        
         if(!areOptionsExplicit){
             currentRenderOpts = toOptions(opts, currentRenderOpts)
         }
-        return finalizeRender(resolve())
+
+        return finalizeRender(RenderRecord(MutablePair(text),null, null))
     }
     fun render(optionBuilder: (Options) -> Unit): String {
         optionBuilder.invoke(currentRenderOpts)
+
         areOptionsExplicit = true
-        return  finalizeRender(resolve())
+        return  finalizeRender(RenderRecord(MutablePair(text),null, null))
     }
 
+    override fun CellParameters.scopedRender(receiver: Unit): RenderRecord {
+        return finalizeScopedRender(RenderRecord(MutablePair(text),null, null))
+    }
     override fun applyOptions(opts: CellOptions?): StaticCell{
         val options = toOptionsOrNull(opts)
         if(options!=null){

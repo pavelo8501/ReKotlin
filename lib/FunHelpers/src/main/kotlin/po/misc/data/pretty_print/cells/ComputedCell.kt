@@ -11,16 +11,15 @@ import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.loader.DataLoader
-import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.loader.toElementProvider
 import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.CellPresets
-import po.misc.data.strings.EditablePair
-import po.misc.data.strings.FormattedText
+import po.misc.data.pretty_print.parts.rendering.CellParameters
 import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.EditablePair
 import po.misc.functions.CallableKey
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
@@ -44,7 +43,7 @@ class ComputedCell<S, T>(
     init {
         dataLoader.apply(callable)
         dataLoader[CallableKey.Provider]?.let {
-            keyText = it.displayName
+            keyText = it.displayName.plain
         }
     }
 
@@ -75,15 +74,15 @@ class ComputedCell<S, T>(
         return pair
     }
 
-    override fun render(source: S, opts: CellOptions?): String {
-        val formattedPair = dataLoader.resolveValue(source)?.let { value ->
+    private fun resolveReceiver(source: S, opts: CellOptions?):RenderRecord{
+        val textSpan = dataLoader.resolveValue(source)?.let { value ->
             val builderResult = builder.invoke(this, value)
             if (checkIfPositiveResult(builderResult)) {
-                val formatted = builderResult.stringify() as EditablePair
-                runDynamicConditions(formatted, value)
+                val styled = builderResult.stringify() as EditablePair
+                runDynamicConditions(styled, value)
             } else {
-                val formatted = builderResult.stringify() as EditablePair
-                runDynamicConditions(formatted, value)
+                val styled = builderResult.stringify() as EditablePair
+                runDynamicConditions(styled, value)
             }
         } ?: run {
             source.stringify()  as EditablePair
@@ -91,12 +90,27 @@ class ComputedCell<S, T>(
         if (!areOptionsExplicit) {
             currentRenderOpts = toOptions(opts, currentRenderOpts)
         }
-        return finalizeRender(RenderRecord(formattedPair))
+        return keyText?.let {
+            createKeyed(textSpan, it)
+        }?:run {
+            RenderRecord(textSpan.copyAsStacked(), null, null)
+        }
+    }
+
+    override fun render(source: S, opts: CellOptions?): String {
+        val renderRecord = resolveReceiver(source, opts)
+        return finalizeRender(renderRecord)
     }
     fun render(source:S, optionBuilder: (Options) -> Unit): String{
         val value = dataLoader.resolveValue(source)
         optionBuilder.invoke(currentRenderOpts)
-        return finalizeRender( RenderRecord(value.stringify()))
+        val renderRecord = resolveReceiver(source, currentRenderOpts)
+        return finalizeRender(renderRecord)
+    }
+
+    override fun CellParameters.scopedRender(receiver: S): RenderRecord {
+        val renderRecord = resolveReceiver(receiver, null)
+        return finalizeScopedRender(renderRecord)
     }
 
     override fun hashCode(): Int {
@@ -124,7 +138,6 @@ class ComputedCell<S, T>(
             appendParam(" Width", cellOptions.width)
         }
     }
-
 
     companion object : PrettyHelper, TokenFactory{
 

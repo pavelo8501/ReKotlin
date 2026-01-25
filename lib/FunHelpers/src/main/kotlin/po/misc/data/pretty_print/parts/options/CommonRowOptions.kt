@@ -5,6 +5,6 @@ sealed interface CommonRowOptions: PrettyOptions, RowBuildOption {
     val orientation : Orientation
     val renderBorders: Boolean
     val cellOptions: CellOptions?
-    val viewport: ViewPortSize
+    val viewport: ViewPortSize?
     fun asRowOptions():RowOptions
 }

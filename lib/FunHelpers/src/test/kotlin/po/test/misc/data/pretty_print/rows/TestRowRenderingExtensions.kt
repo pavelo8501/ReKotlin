@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 
 class TestRowRenderingExtensions : Templated<TestRowRenderingExtensions>{
 
-    override val type : TypeToken<TestRowRenderingExtensions> = tokenOf()
+    override val receiverType : TypeToken<TestRowRenderingExtensions> = tokenOf()
 
     private val text1 = "Text 1"
     private val text2 = "Text 2 bit longer"

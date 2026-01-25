@@ -1,10 +1,13 @@
 package po.misc.data.styles
 
-import po.misc.data.TextContaining
+import po.misc.interfaces.named.TextContaining
+
 
 enum class Emoji(val symbol: String): TextContaining {
 
     NONE(""),
+    Chat("🗣️"),
+    Speech("💬"),
     FIRE("🔥"),
     CHECK("✅"),
     CROSS("❌"),
@@ -37,6 +40,4 @@ enum class Emoji(val symbol: String): TextContaining {
 
     override fun asText(): String =  symbol
     override fun toString(): String = symbol
-
-
 }

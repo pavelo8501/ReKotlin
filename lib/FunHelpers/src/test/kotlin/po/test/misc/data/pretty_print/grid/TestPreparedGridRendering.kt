@@ -3,6 +3,8 @@ package po.test.misc.data.pretty_print.grid
 import po.misc.data.logging.Verbosity
 import po.misc.data.output.output
 import po.misc.data.pretty_print.buildPrettyGrid
+import po.misc.data.pretty_print.parts.common.Grid
+import po.misc.data.pretty_print.parts.common.Row
 import po.misc.data.pretty_print.prepareListGrid
 import po.misc.data.pretty_print.prepareValueGrid
 import po.test.misc.data.pretty_print.setup.PrettyTestBase

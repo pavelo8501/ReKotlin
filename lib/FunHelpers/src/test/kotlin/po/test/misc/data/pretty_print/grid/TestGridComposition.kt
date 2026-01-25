@@ -7,6 +7,8 @@ import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueRow
 import po.misc.data.pretty_print.buildGrid
 import po.misc.data.pretty_print.dsl.DSLEngine
+import po.misc.data.pretty_print.parts.common.Grid
+import po.misc.data.pretty_print.parts.common.Row
 import po.misc.data.pretty_print.prepareListGrid
 import po.misc.data.pretty_print.prepareValueGrid
 import po.misc.data.pretty_print.parts.grid.RenderKey

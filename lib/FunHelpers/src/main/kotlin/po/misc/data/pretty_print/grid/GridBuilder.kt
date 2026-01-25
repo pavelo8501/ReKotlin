@@ -1,14 +1,13 @@
 package po.misc.data.pretty_print.grid
 
-import po.misc.callbacks.callable.asPropertyCallable
+import po.misc.callbacks.callable.toCallable
 import po.misc.data.pretty_print.PrettyGrid
-import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.PrettyValueRow
 import po.misc.data.pretty_print.parts.dsl.PrettyDSL
 import po.misc.data.pretty_print.parts.loader.toElementProvider
-import po.misc.data.pretty_print.parts.loader.toListProvider
+import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.GridID
 import po.misc.data.pretty_print.rows.ValueRowBuilder
 import po.misc.types.token.TypeToken
@@ -37,8 +36,8 @@ class GridBuilder<T>(
         gridID: GridID? = null,
         builderAction: ValueGridBuilder<T, V>.() -> Unit
     ): PrettyValueGrid<T, V>{
-        val callable = property.asPropertyCallable(receiverType)
-        val valueGridBuilder = ValueGridBuilder(receiverType,  callable.receiverType, gridID)
+        val callable = property.toCallable(receiverType)
+        val valueGridBuilder = ValueGridBuilder(callable, gridID)
         builderAction.invoke(valueGridBuilder)
         return  valueGridBuilder.finalizeGrid(prettyGrid)
     }
@@ -49,11 +48,10 @@ class GridBuilder<T>(
         gridID: GridID? = null,
         builderAction: ValueGridBuilder<T, V>.()-> Unit
     ): PrettyValueGrid<T, V> {
-        val valueType = tokenOf<V>()
-        val callable = listProperty.asPropertyCallable(receiverType)
-        val valueGridBuilder = ValueGridBuilder(receiverType,  valueType, gridID)
+        val callable = listProperty.toCallable(receiverType)
+        val valueGridBuilder = ValueGridBuilder(property =  callable,  gridID)
         builderAction.invoke(valueGridBuilder)
-        return valueGridBuilder.finalizeGrid(callable, prettyGrid)
+        return valueGridBuilder.finalizeGrid(prettyGrid)
     }
 
 
@@ -61,10 +59,12 @@ class GridBuilder<T>(
     fun <V: Any> useTemplate(
         container: ValueGridBuilder<T, V>,
         gridID: GridID? = null,
-        opt: CommonRowOptions? = null,
+        opts: CommonRowOptions? = null,
         builderAction: (ValueGridBuilder<T, V>.() -> Unit)? = null
     ):PrettyValueGrid<T, V>{
-        container.applyOptions(opt)
+        opts?.let {
+            container.applyOptions(it)
+        }
         builderAction?.invoke(container)
         return container.finalizeGrid(prettyGrid)
     }
@@ -74,15 +74,14 @@ class GridBuilder<T>(
         grid: PrettyGrid<V>,
         property: KProperty1<T, V>,
         gridID: GridID? = null,
-        opts: CommonRowOptions? = null,
         noinline builderAction: (ValueGridBuilder<T, V>.() -> Unit)? = null
     ): PrettyValueGrid<T, V> {
         val gridCopy = grid.copy()
-        val callable = property.toElementProvider(receiverType)
-        val valueGridBuilder = ValueGridBuilder(receiverType, callable.receiverType, gridID, opts)
+        val callable = property.toElementProvider(receiverType, tokenOf<V>())
+        val valueGridBuilder = ValueGridBuilder(callable, gridID)
         valueGridBuilder.addRowsChecking(callable.receiverType,  gridCopy.rows)
         builderAction?.invoke(valueGridBuilder)
-        return valueGridBuilder.finalizeGrid(callable, prettyGrid)
+        return valueGridBuilder.finalizeGrid(prettyGrid)
     }
 
     @PrettyDSL
@@ -91,16 +90,15 @@ class GridBuilder<T>(
         grid: PrettyGrid<V>,
         listProperty: KProperty1<T, List<V>>,
         gridID: GridID? = null,
-        opts: CommonRowOptions? = null,
         noinline builderAction: (ValueGridBuilder<T, V>.() -> Unit)? = null
     ): PrettyValueGrid<T, V> {
         val valueType = tokenOf<V>()
         val gridCopy = grid.copy()
-        val callable = listProperty.toElementProvider(receiverType)
-        val valueGridBuilder = ValueGridBuilder(receiverType, valueType, gridID, opts)
+        val callable = listProperty.toCallable(receiverType)
+        val valueGridBuilder = ValueGridBuilder(property =  callable, gridID)
         valueGridBuilder.addRowsChecking(valueType,  gridCopy.rows)
         builderAction?.invoke(valueGridBuilder)
-        return valueGridBuilder.finalizeGrid(callable, prettyGrid)
+        return valueGridBuilder.finalizeGrid(prettyGrid)
     }
 
 
@@ -123,14 +121,13 @@ class GridBuilder<T>(
         row: PrettyRow<V>,
         property: KProperty1<T, V>,
         gridID: GridID? = null,
-        opts: CommonRowOptions? = null,
         noinline builderAction: (ValueGridBuilder<T, V>.() -> Unit)? = null
     ):PrettyValueGrid<T, V>{
         val provider = property.toElementProvider(receiverType)
-        val valueGridBuilder = ValueGridBuilder(receiverType, row.receiverType, gridID, opts)
-        valueGridBuilder.addRow(row.copy(opts))
+        val valueGridBuilder = ValueGridBuilder(provider, gridID)
+        valueGridBuilder.addRow(row.copy())
         builderAction?.invoke(valueGridBuilder)
-        return  valueGridBuilder.finalizeGrid(provider, prettyGrid)
+        return  valueGridBuilder.finalizeGrid(prettyGrid)
     }
 
     @PrettyDSL
@@ -139,14 +136,13 @@ class GridBuilder<T>(
         row: PrettyRow<V>,
         property: KProperty1<T, List<V>>,
         gridID: GridID? = null,
-        opts: CommonRowOptions? = null,
         noinline builderAction: (ValueGridBuilder<T, V>.() -> Unit)? = null
     ):PrettyValueGrid<T, V>{
-        val dataProvider =  property.toListProvider(receiverType)
-        val valueGridBuilder = ValueGridBuilder(receiverType, row.receiverType, gridID, opts)
-        valueGridBuilder.addRow(row.copy(opts))
+        val property =  property.toCallable(receiverType)
+        val valueGridBuilder = ValueGridBuilder(property =  property, gridID)
+        valueGridBuilder.addRow(row.copy())
         builderAction?.invoke(valueGridBuilder)
-        return  valueGridBuilder.finalizeGrid(dataProvider, prettyGrid)
+        return  valueGridBuilder.finalizeGrid(prettyGrid)
     }
 
     companion object {

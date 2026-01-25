@@ -14,7 +14,6 @@ interface RowBuilderScope<T>{
     val type: TypeToken<T>
     val options: RowOptions?
     fun addRow(row: PrettyRow<T>): PrettyRow<T>
-    fun exclude(vararg id: RowID) = options?.exclude(id.toList())
 
    fun  headedRow(
         text: String,

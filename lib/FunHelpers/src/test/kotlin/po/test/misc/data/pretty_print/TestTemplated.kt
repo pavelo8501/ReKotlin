@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 
 class TestTemplated : Templated<TestTemplated> {
 
-    override val type: TypeToken<TestTemplated> = tokenOf()
+    override val receiverType: TypeToken<TestTemplated> = tokenOf()
 
     val stringProperty: String = "string"
     val intProperty: Int = 300

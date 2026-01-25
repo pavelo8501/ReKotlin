@@ -4,8 +4,9 @@ import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.formatters.FormatterTag
 import po.misc.data.pretty_print.formatters.LayoutFormatter
 import po.misc.data.pretty_print.parts.cells.RenderRecord
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
-import po.misc.data.strings.EditablePair
+import po.misc.data.pretty_print.parts.rendering.CellParameters
+import po.misc.data.text_span.EditablePair
+
 
 class CellFormatter() : LayoutFormatter {
 
@@ -21,11 +22,11 @@ class CellFormatter() : LayoutFormatter {
         }
     }
 
-    override fun modify(pair: EditablePair, parameters: RenderParameters) {
+    override fun modify(pair: EditablePair, parameters: CellParameters) {
         TODO("Not yet implemented")
     }
 
-    override fun modify(record: RenderRecord, parameters: RenderParameters){
+    override fun modify(record: RenderRecord, parameters: CellParameters){
 
         TODO("Not yet implemented")
     }

@@ -4,9 +4,9 @@ import po.misc.data.pretty_print.formatters.FormatterTag
 import po.misc.data.pretty_print.formatters.StyleFormatter
 import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.rendering.StyleParameters
-import po.misc.data.strings.EditablePair
 import po.misc.data.styles.Colour
 import po.misc.data.styles.applyColour
+import po.misc.data.text_span.EditablePair
 
 
 open class ColorModifier(
@@ -65,9 +65,9 @@ open class ColorModifier(
             modifyByConditions(text, conditionsList)
         }
     }
-    override fun modify(formattedPair: EditablePair, styleParameters: StyleParameters) {
-        val modified =  modify(formattedPair.plain)
-        formattedPair.writeFormatted(modified)
+    override fun modify(TextSpan: EditablePair, styleParameters: StyleParameters) {
+        val modified =  modify(TextSpan.plain)
+        TextSpan.writeFormatted(modified)
     }
 
     override fun modify(record: RenderRecord, styleParameters: StyleParameters) {

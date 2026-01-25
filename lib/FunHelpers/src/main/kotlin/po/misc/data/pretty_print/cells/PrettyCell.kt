@@ -5,7 +5,7 @@ import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.PrettyHelper
-import po.misc.data.strings.FormattedText
+import po.misc.data.pretty_print.parts.rendering.CellParameters
 import po.misc.data.strings.stringify
 import po.misc.types.token.TypeToken
 import kotlin.Any
@@ -26,11 +26,18 @@ class PrettyCell(
         if(!areOptionsExplicit){
             currentRenderOpts = toOptions(opts, currentRenderOpts)
         }
-        return finalizeRender( RenderRecord(content.stringify()))
+        val content = content.stringify()
+        return finalizeRender( RenderRecord(content.copyAsStacked(), null, null))
     }
     fun render(content: Any, optionBuilder: (Options) -> Unit): String{
         optionBuilder.invoke(currentRenderOpts)
-        return finalizeRender(RenderRecord(content.stringify()))
+        val content = content.stringify()
+        return finalizeRender(RenderRecord(content.copyAsStacked(), null, null))
+    }
+
+    override fun CellParameters.scopedRender(receiver: Any): RenderRecord {
+        val content = receiver.stringify()
+        return finalizeScopedRender(RenderRecord(content.copyAsStacked(), null, null))
     }
 
     override fun applyOptions(opts: CellOptions?): PrettyCell{

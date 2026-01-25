@@ -5,10 +5,11 @@ import po.misc.data.output.output
 import po.misc.data.pretty_print.Placeholder
 import po.misc.data.pretty_print.parts.grid.RenderableType
 import po.misc.data.pretty_print.buildPrettyRow
+import po.misc.data.pretty_print.parts.common.Row
 import po.misc.data.pretty_print.templates.TemplatePlaceholder
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.templates.Lifecycle
-import po.misc.data.styles.contains
+import po.misc.data.strings.contains
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import kotlin.reflect.full.isSubclassOf

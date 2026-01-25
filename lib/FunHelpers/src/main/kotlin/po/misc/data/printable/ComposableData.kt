@@ -1,7 +1,7 @@
 package po.misc.data.printable
 
-import po.misc.data.KeyedValue
 import po.misc.data.printable.grouping.ArbitraryDataMap
+import po.misc.interfaces.named.KeyedValue
 
 interface ComposableData<T: Printable> {
 

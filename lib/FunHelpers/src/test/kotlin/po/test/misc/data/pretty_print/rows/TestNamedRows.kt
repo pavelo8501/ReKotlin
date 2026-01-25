@@ -3,6 +3,7 @@ package po.test.misc.data.pretty_print.rows
 import org.junit.jupiter.api.Test
 import po.misc.data.output.output
 import po.misc.data.pretty_print.buildPrettyGrid
+import po.misc.data.pretty_print.parts.common.Row
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.template.RenderController
 import po.test.misc.data.pretty_print.setup.PrettyTestBase

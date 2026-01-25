@@ -1,6 +1,8 @@
 package po.misc.data.pretty_print
 
 import po.misc.callbacks.callable.ReceiverCallable
+import po.misc.data.pretty_print.parts.common.RenderData
+import po.misc.data.pretty_print.parts.common.RenderMarker
 import po.misc.data.pretty_print.parts.grid.RenderPlan
 import po.misc.data.pretty_print.parts.grid.RenderableType
 import po.misc.data.pretty_print.parts.loader.DataLoader
@@ -8,27 +10,30 @@ import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.RowOptions
 import po.misc.data.pretty_print.parts.options.NamedTemplate
+import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
+import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.rendering.RenderSnapshot
 import po.misc.data.pretty_print.templates.TemplateCompanion
+import po.misc.interfaces.named.NamedComponent
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TokenizedResolver
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
 sealed interface TemplatePart<T>: Tokenized<T>{
+
     val enabled: Boolean
     val templateID: NamedTemplate
     val renderableType : RenderableType
-
+    val keyParameters: KeyRenderParameters
     val receiverType:TypeToken<T>
-
-    override val typeToken: TypeToken<T>
-        get() = receiverType
-
+    override val typeToken: TypeToken<T> get() = receiverType
+    val index: Int get() = keyParameters.index
     fun copy(usingOptions: CommonRowOptions? = null):TemplatePart<T>
 
-    fun shouldRender():Boolean{
-        return enabled
-    }
+    fun createSnapshot():RenderSnapshot = keyParameters.createSnapshot(this)
+
+
 }
 
 /**
@@ -43,20 +48,21 @@ sealed interface TemplatePart<T>: Tokenized<T>{
  * conditions are not met.
  */
 sealed interface RenderableElement<S, T> : TemplatePart<T>, TokenizedResolver<S, T>{
-    val options: RowOptions
 
+    val options: RowOptions
     override val sourceType: TypeToken<S>
     override val receiverType:TypeToken<T>
-
     override val typeToken: TypeToken<T> get() = receiverType
+    val dataLoader: DataLoader<S, T>
+
+    fun renderFromSource(marker: RenderMarker, source:S, opts: CommonRowOptions? = null): RenderData
     fun renderFromSource(source:S, opts: CommonRowOptions? = null):String
 }
 
-interface TemplateHost<S, V>: TemplatePart<V>, TokenizedResolver<S, V>{
+interface TemplateHost<S, V>: TemplatePart<V>, TokenizedResolver<S, V>, NamedComponent{
     val options: RowOptions
     val renderPlan : RenderPlan<S, V>
     val dataLoader: DataLoader<S, V>
-
     override val receiverType:TypeToken<V>
     override val typeToken: TypeToken<V> get() = receiverType
     override fun copy(usingOptions: CommonRowOptions? ):TemplateHost<S, V>
@@ -81,6 +87,9 @@ interface Placeholder<T> : TemplateHost<T, T> {
     fun initLoader(provider: ElementProvider<T, T>)
     fun provideRenderable(element: TemplateHost<T, T>, provider: ReceiverCallable<T, T>? = null):Placeholder<T>
     fun render(opts: CommonRowOptions? = null): String
+
+    fun renderInScope(parameter: RenderParameters):RenderData
+
     override fun copy(usingOptions: CommonRowOptions?):Placeholder<T>
     /**
      * Companion object used for semantic lookup in [po.misc.data.pretty_print.parts.grid.RenderPlan].

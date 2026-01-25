@@ -123,9 +123,8 @@ class ProceduralEntry(
     }
 
     companion object : Templated<ProceduralEntry>{
-
         val defaultBadge : Badge = Badge.Init
-        override val type: TypeToken<ProceduralEntry> = tokenOf<ProceduralEntry>()
+        override val receiverType: TypeToken<ProceduralEntry> = tokenOf<ProceduralEntry>()
         private val entryOptions = buildRowOption(){
             renderBorders = false
             useId(ProceduralRecord.ProceduralTemplate.Entry)

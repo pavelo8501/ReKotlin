@@ -1,11 +1,10 @@
 package po.misc.data.pretty_print.formatters.text_modifiers
 
-import po.misc.data.output.output
 import po.misc.data.pretty_print.formatters.DynamicStyleFormatter
 import po.misc.data.pretty_print.formatters.FormatterTag
-import po.misc.data.strings.EditablePair
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
+import po.misc.data.text_span.EditablePair
 import po.misc.types.token.TypeToken
 
 
@@ -146,12 +145,12 @@ class DynamicColourModifier<T>(
         }
         return text
     }
-    override fun modify(formattedPair: EditablePair, parameter: T) {
+    override fun modify(TextSpan: EditablePair, parameter: T) {
         for (dynamicCondition in conditions){
             val match: Boolean = dynamicCondition.check(parameter)
             if(match){
-                 val colorized =  formattedPair.plain.colorize(dynamicCondition.colour)
-                 formattedPair.writeFormatted(colorized)
+                 val colorized =  TextSpan.plain.colorize(dynamicCondition.colour)
+                 TextSpan.writeFormatted(colorized)
             }
         }
     }

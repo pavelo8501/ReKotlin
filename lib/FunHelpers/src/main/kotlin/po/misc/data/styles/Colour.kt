@@ -22,4 +22,11 @@ enum class Colour(override val code: String) : StyleCode {
     GrayLight("\u001B[90m"),
     RESET("\u001B[0m");
 
+    companion object {
+
+        fun matchByNameOrDefault(name: String):Colour{
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) }?: Default
+        }
+    }
+
 }

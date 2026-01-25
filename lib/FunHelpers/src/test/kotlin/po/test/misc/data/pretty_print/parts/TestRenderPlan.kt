@@ -4,6 +4,8 @@ import org.junit.jupiter.api.TestInstance
 import po.misc.collections.repeatBuild
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.dsl.InTestDSL
+import po.misc.data.pretty_print.parts.common.Grid
+import po.misc.data.pretty_print.parts.common.Row
 import po.misc.data.pretty_print.parts.grid.RowNode
 import po.misc.data.pretty_print.parts.grid.ValueGridNode
 import po.misc.reflection.displayName

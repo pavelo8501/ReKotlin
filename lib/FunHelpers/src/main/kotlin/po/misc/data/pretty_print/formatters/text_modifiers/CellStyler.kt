@@ -4,37 +4,40 @@ import po.misc.data.pretty_print.formatters.FormatterTag
 import po.misc.data.pretty_print.formatters.StyleFormatter
 import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.rendering.StyleParameters
-import po.misc.data.strings.EditablePair
 import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.EditablePair
 
 class CellStyler(): StyleFormatter, TextStyler {
 
     override val dynamic: Boolean = false
     override val tag: FormatterTag = FormatterTag.TextStyler
 
-    override fun modify(formattedPair: EditablePair, styleParameters: StyleParameters){
-        if(formattedPair.namedFormatted.isNotEmpty()) {
-            formattedPair.namedFormatted.firstOrNull { it.name.name.lowercase() == "key" }?.let {
+    override fun modify(TextSpan: EditablePair, styleParameters: StyleParameters){
+        if(TextSpan.namedFormatted.isNotEmpty()) {
+            TextSpan.namedFormatted.firstOrNull { it.name.name.lowercase() == "key" }?.let {
                 val modified = it.plain.style(styleParameters.keyStyle)
                 it.writeFormatted(modified)
             }
-            formattedPair.namedFormatted.firstOrNull { it.name.name.lowercase() == "value" }?.let {
+            TextSpan.namedFormatted.firstOrNull { it.name.name.lowercase() == "value" }?.let {
                 val modified = it.plain.style(styleParameters.style)
                 it.writeFormatted(modified)
             }
         }else{
-            val modified = formattedPair.plain.style(styleParameters.style)
-            formattedPair.writeFormatted(modified)
+            val modified = TextSpan.plain.style(styleParameters.style)
+            TextSpan.writeFormatted(modified)
         }
     }
 
     override fun modify(record: RenderRecord, styleParameters: StyleParameters){
-        if(record.hasKey){
-            val styledKey = record.formattedKey.style(styleParameters.keyStyle)
-            record.setKey(record.plainKey, styledKey)
+        record.key?.let {
+            val styledKey = it.plain.style(styleParameters.keyStyle)
+            it.change(it.plain, styledKey)
+            val styledValue = record.value.plain.style(styleParameters.style)
+            record.value.change(record.value.plain, styledValue)
+        }?:run {
+            val styledValue = record.plain.style(styleParameters.style)
+            record.change(record.plain, styledValue)
         }
-        val styledValue = record.formattedValue.style(styleParameters.style)
-        record.setValue(record.plainValue, styledValue)
     }
 
 }

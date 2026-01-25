@@ -1,8 +1,7 @@
 package po.misc.dsl.configurator
 
-
-import po.misc.data.KeyedValue
-import po.misc.data.TextContaining
+import po.misc.interfaces.named.KeyedValue
+import po.misc.interfaces.named.TextContaining
 
 
 internal fun  TextContaining.generateName(): String{

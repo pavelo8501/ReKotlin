@@ -9,9 +9,7 @@ import kotlin.reflect.typeOf
 interface TypeProvider{
     val types: List<TypeToken<*>>
 
-    val typeName:String get() = types.joinToString(prefix = "<", separator = ",", postfix = ">") {
-        it.typeName
-    }
+    val typeName:String get() = types.joinToString(prefix = "<", separator = ",", postfix = ">") { it.typeName }
 }
 
 interface TokenHolder: TypeProvider{

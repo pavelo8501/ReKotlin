@@ -78,4 +78,5 @@ class TestStringify {
                     lines[2].contains(entry1Hash.toString())
         }
     }
+
 }

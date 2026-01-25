@@ -1,10 +1,23 @@
 package po.misc.collections
 
 
-open class ReactiveList<T: Any>(
-    val onEvery: (T)-> Unit
-): AbstractMutableList<T>(){
 
+
+class ReactiveListActions<T: Any>{
+
+    var onAdd: ((Pair<T, Int>)-> Unit)? = null
+    var onRemove: ((Int)-> Unit)? = null
+
+    fun onAdd(callback: (Pair<T, Int>)-> Unit){
+        onAdd = callback
+    }
+    fun onRemove(callback: (Int)-> Unit){
+        onRemove = callback
+    }
+}
+
+open class ReactiveList<T: Any>(): AbstractMutableList<T>(){
+    internal val actions = ReactiveListActions<T>()
     private val listBacking: MutableList<T> = mutableListOf()
     override val size: Int get() = listBacking.size
 
@@ -13,20 +26,28 @@ open class ReactiveList<T: Any>(
     }
     override fun set(index: Int, element: T): T {
         listBacking[index] = element
-        onEvery.invoke(element)
+        actions.onAdd?.invoke(Pair(element, listBacking.size))
         return element
     }
     override fun removeAt(index: Int): T {
-        return  listBacking.removeAt(index)
+        val removed = listBacking.removeAt(index)
+        actions.onRemove?.invoke(listBacking.size)
+        return  removed
     }
     override fun add(index: Int, element: T) {
         listBacking.add(index, element)
-        onEvery.invoke(element)
+        actions.onAdd?.invoke(Pair(element, listBacking.size))
+    }
+    override fun clear() {
+        listBacking.clear()
+        actions.onRemove?.invoke(0)
     }
 }
 
 fun <T: Any> reactiveListOf(
-    onEvery: (T)-> Unit
+    actionConfig: (ReactiveListActions<T>.()-> Unit)? = null,
 ):ReactiveList<T>{
-    return ReactiveList(onEvery)
+    val list = ReactiveList<T>()
+    actionConfig?.invoke(list.actions)
+    return list
 }

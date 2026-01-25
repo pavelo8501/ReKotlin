@@ -1,9 +1,9 @@
 package po.misc.data.pretty_print.parts.options
 
-import po.misc.data.strings.FormattedPair
-import po.misc.data.strings.FormattedText
-import po.misc.data.strings.StringifyOptions
+import po.misc.data.strings.ElementOptions
 import po.misc.data.styles.SpecialChars
+import po.misc.data.text_span.FormattedText
+import po.misc.data.text_span.TextSpan
 
 
 data class Margins(
@@ -11,30 +11,30 @@ data class Margins(
     var spaceFiller: Char = SpecialChars.WHITESPACE_CHAR
 ){
 
-    fun wrapText(text:String):FormattedPair {
+    fun wrapText(text:String): TextSpan {
         val prefix = spaceFiller.toString().repeat(leftMargin)
-        return  FormattedText("$prefix$text")
+        return FormattedText("$prefix$text")
     }
 
-    fun wrapText(formattedPair: FormattedText): FormattedPair {
+    fun wrapText(TextSpan: FormattedText): TextSpan {
         val prefix = spaceFiller.toString().repeat(leftMargin)
-        formattedPair.formattedTextSubEntries.forEach {
+        TextSpan.formattedTextSubEntries.forEach {
             it.plain = "$prefix${it.plain}"
-            it.formatted = "$prefix${it.formatted}"
+            it.styled = "$prefix${it.styled}"
         }
+        TextSpan.plain = "$prefix${TextSpan.plain}"
+        TextSpan.styled = "$prefix${TextSpan.styled}"
 
-        formattedPair.plain = "$prefix${formattedPair.plain}"
-        formattedPair.formatted = "$prefix${formattedPair.formatted}"
-        val options = StringifyOptions.ElementOptions(SpecialChars.NEW_LINE)
-        if(formattedPair.formattedTextSubEntries.size == 1){
-            return formattedPair.joinSubEntries(options)
+        val options = ElementOptions(SpecialChars.NEW_LINE)
+        if(TextSpan.formattedTextSubEntries.size == 1){
+            return TextSpan.joinSubEntries(options)
         }
-        if(formattedPair.formattedTextSubEntries.size == 2){
-           val formatted = FormattedText(formattedPair.formattedTextSubEntries.first())
-           formatted.add(formattedPair.plain, formattedPair.formatted)
-           formatted.add(formattedPair.formattedTextSubEntries[1])
+        if(TextSpan.formattedTextSubEntries.size == 2){
+           val formatted = FormattedText(TextSpan.formattedTextSubEntries.first())
+           formatted.append(TextSpan.plain, TextSpan.styled)
+           formatted.append(TextSpan.formattedTextSubEntries[1])
             return formatted.joinSubEntries(options)
         }
-        return  formattedPair.joinSubEntries(options)
+        return  TextSpan.joinSubEntries(options)
     }
 }

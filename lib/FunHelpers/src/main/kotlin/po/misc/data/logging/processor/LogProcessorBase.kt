@@ -63,15 +63,13 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
     abstract fun handleUnAssigned(message: Loggable)
 
     private fun outputDebud(subject: DebugSubject){
-        "${subject.subjectName} ${subject.subjectText}".output(this)
+        "${subject.subjectName} ${subject.subjectText}".output()
     }
-
     private fun storeData(data: T, tryHandle: Boolean = true){
         logRecordsBacking.add(data)
         activeRecord = data
 
     }
-
     private fun handleStructured(loggable: StructuredLoggable): Boolean{
         return logForwarder.handle(loggable)
     }
@@ -105,7 +103,6 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
             when (loggable) {
                 is ProceduralRecord -> {
                     if(debugMode) outputDebud(DebugMethod.methodName("log2", "${loggable::class}  -> handleStructured"))
-                    "log ProceduralRecord branch hit".output(this, Colour.Yellow)
                 }
                 is LogMessage ->{
                     initialStructured.addRecord(loggable)
@@ -129,9 +126,7 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
     }
 
     fun logData(data: T, noOutput: Boolean = false):T{
-
         val shouldOutput = verbosityLevelMet(data)
-
         if(shouldOutput){
             val handlerExists = logForwarder.getHandlerFor(data)
             if(handlerExists != null){
@@ -144,9 +139,7 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
                 if(!noOutput && !generalMute ){
                     outputOrNot(data)
                 }
-                onDataInterception?.let { callback->
-                    callback.invoke(data)
-                }
+                onDataInterception?.invoke(data)
             }
         }else{
             storeData(data, tryHandle = false)
@@ -175,8 +168,6 @@ abstract class LogProcessorBase<T: StructuredLoggable>(
         shouldStoreRecords = true
         onDataInterception = null
     }
-
-
     fun clear(){
          logRecordsBacking.clear()
     }

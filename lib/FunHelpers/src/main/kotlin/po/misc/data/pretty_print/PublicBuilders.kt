@@ -1,9 +1,8 @@
 package po.misc.data.pretty_print
 
-import po.misc.callbacks.callable.asPropertyCallable
+import po.misc.callbacks.callable.toCallable
 import po.misc.data.pretty_print.grid.GridBuilder
 import po.misc.data.pretty_print.grid.ValueGridBuilder
-
 import po.misc.data.pretty_print.parts.options.GridID
 import po.misc.data.pretty_print.parts.options.RowID
 import po.misc.data.pretty_print.rows.RowBuilder
@@ -28,8 +27,9 @@ inline fun <reified S, reified T> prepareValueGrid(
     gridID: GridID? = null,
     noinline  builderAction: ValueGridBuilder<S, T>.() -> Unit
 ): ValueGridBuilder<S, T> {
-    val callable = property.asPropertyCallable<S, T>()
-    val valueGridBuilder = ValueGridBuilder(TypeToken<S>(), TypeToken<T>(), gridID)
+
+    val callable = property.toCallable<S, T>()
+    val valueGridBuilder = ValueGridBuilder(callable, gridID)
     valueGridBuilder.prettyGrid.dataLoader.add(callable)
     valueGridBuilder.preSaveBuilder(builderAction)
     return valueGridBuilder
@@ -40,8 +40,8 @@ inline fun <reified S, reified T> prepareListGrid(
     gridID: GridID? = null,
     noinline  builderAction: ValueGridBuilder<S, T>.() -> Unit
 ): ValueGridBuilder<S, T> {
-    val callable = property.asPropertyCallable<S, List<T>>()
-    val valueGridBuilder = ValueGridBuilder(TypeToken<S>(), TypeToken<T>(), gridID)
+    val callable = property.toCallable<S, List<T>>()
+    val valueGridBuilder = ValueGridBuilder(property = callable, gridID)
     valueGridBuilder.preSaveBuilder(builderAction)
     valueGridBuilder.prettyGrid.dataLoader.add(callable)
     return valueGridBuilder
@@ -68,7 +68,7 @@ inline fun <reified T, reified V> prepareRow(
     rowID: RowID? = null,
     noinline  builderAction: ValueRowBuilder<T, V>.() -> Unit
 ): ValueRowBuilder<T, V> {
-    val callable = property.asPropertyCallable<T, V>()
+    val callable = property.toCallable<T, V>()
     val valueBuilder =   ValueRowBuilder(callable.sourceType, callable.receiverType, rowID)
     valueBuilder.preSaveBuilder(builderAction)
     return valueBuilder

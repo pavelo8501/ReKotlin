@@ -11,12 +11,15 @@ object HighLight : OutputBehaviour
 
 
 sealed interface OutputResultBehaviour
+
 object Pass : OutputResultBehaviour
 
 sealed interface OutputProvider
+
 object SyncPrint :OutputProvider
 object PrintOnComplete :OutputProvider
 object LocateOutputs : OutputProvider
+
 
 
 

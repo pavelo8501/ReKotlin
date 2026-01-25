@@ -7,6 +7,7 @@ import po.misc.data.pretty_print.buildGrid
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.dsl.InTestDSL
 import po.misc.data.pretty_print.buildPrettyGrid
+import po.misc.data.pretty_print.parts.common.Grid
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import kotlin.test.Test
 import kotlin.test.assertEquals

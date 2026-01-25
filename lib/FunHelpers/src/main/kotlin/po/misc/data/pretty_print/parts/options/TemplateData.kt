@@ -1,68 +1,78 @@
 package po.misc.data.pretty_print.parts.options
 
-import po.misc.data.Named
 import po.misc.data.PrettyPrint
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.parts.grid.RenderableType
+import po.misc.interfaces.named.Named
+import po.misc.types.token.TokenHolder
 import po.misc.types.token.TypeToken
 import java.time.Instant
-
 
 class CompositionTrace(
     val renderableType:RenderableType,
     val typeString: String,
-    val templateID: NamedTemplate,
-    val hashCode: Int = 0
+    val templateID: NamedTemplate
 ){
+
+    val hashCode: Int get() {
+       return when(templateID){
+            is DefaultGridID ->    templateID.hash
+            is DefaultRowID ->    templateID.hash
+            else ->   0
+        }
+    }
     val created: Instant = Instant.now()
-
-    var recreatedFrom: CompositionTrace? = null
-    var consumedBy: CompositionTrace? = null
-
-    val compositionRecords = mutableListOf<CompositionTrace>()
 
     companion object{
 
-        fun createFrom(token1: TypeToken<*>, renderableType:RenderableType, templateID: NamedTemplate? = null):CompositionTrace{
-            val templateName =  renderableType.name
-            val useID = if(templateID != null){
-                templateID
-            }else{
-                val typeName =  token1.typeName
-                PrettyHelper.generateGridID(renderableType, typeName)
+
+        fun createFrom(
+            tokenized: TokenHolder,
+            renderableType:RenderableType,
+            templateID: NamedTemplate? = null
+        ):CompositionTrace {
+            val templateName = renderableType.name
+            val typeName = tokenized.typeName
+            return templateID?.let {
+                CompositionTrace(renderableType, templateName, it)
+            } ?: run {
+                CompositionTrace(renderableType, templateName, PrettyHelper.generateGridID(renderableType, typeName))
             }
-            return CompositionTrace(renderableType, templateName, useID)
         }
 
-        fun createFrom(token1: TypeToken<*>, token2: TypeToken<*>?, renderableType:RenderableType, templateID: NamedTemplate? = null):CompositionTrace{
-            val templateName =  renderableType.name
-            val typeName =  if(token2 != null){
-                "${token1.typeName}, ${token2.typeName}"
-            }else{
-                token1.typeName
-            }
-           val useID = templateID ?: PrettyHelper.generateGridID(renderableType, typeName)
-           return CompositionTrace(renderableType, templateName, useID)
-        }
     }
 }
 
 class TemplateData(
-    val templateID:NamedTemplate,
-    internal  val compositionTrace: CompositionTrace,
+    id:NamedTemplate
 ): PrettyPrint{
 
-    val receiverTypeName: String get() {
-        return  compositionTrace.typeString
+    constructor(compositionTrace: CompositionTrace):this(compositionTrace.templateID){
+        compositionRecords.add(compositionTrace)
     }
-    private val typeName:String get() = compositionTrace.typeString
+
+    var templateID:NamedTemplate = id
+        private set
+
+    internal val compositionRecords = mutableListOf<CompositionTrace>()
+
+    val receiverTypeName: String get() {
+        return templateID.name
+    }
+
     override val formattedString: String get() {
       return  when(templateID){
             is RowID, is GridID -> "${templateID.formattedString} <$receiverTypeName>"
         }
     }
-    override fun toString(): String = typeName
+
+    fun updateID(trace: CompositionTrace){
+        templateID = trace.templateID
+        compositionRecords.add(trace)
+    }
+
+    override fun toString(): String = templateID.name
 }
 
 sealed interface NamedTemplate: PrettyPrint, Named{
@@ -97,11 +107,12 @@ class DefaultGridID internal constructor(
     val receiverTypeName: String,
     val hash: Int
 ): GridID {
+
     override val name: String get() {
-        return "${renderableType.name} #$hash <${receiverTypeName}>"
+        return "${renderableType.name}<${receiverTypeName}> #$hash"
     }
     override val formattedString: String get() {
-        return "${renderableType.formattedString} #$hash<${receiverTypeName}>"
+        return "${renderableType.formattedString}<${receiverTypeName}> #$hash"
     }
     override fun toString(): String {
         return name
@@ -112,7 +123,6 @@ class DefaultRowID internal constructor(
     val receiverTypeName: String,
     val hash: Int
 ): RowID {
-
     override val name: String get() {
         return "${renderableType.name} #$hash <${receiverTypeName}>"
     }

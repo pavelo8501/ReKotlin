@@ -1,5 +1,6 @@
 package po.misc.data.pretty_print.rows
 
+import po.misc.callbacks.callable.CallableCollection
 import po.misc.callbacks.callable.ReceiverCallable
 import po.misc.callbacks.signal.Signal
 import po.misc.callbacks.signal.signalOf
@@ -28,6 +29,8 @@ import po.misc.data.pretty_print.parts.options.RowOptions
 import po.misc.data.pretty_print.parts.rows.RowParams
 import po.misc.data.pretty_print.parts.template.RenderController
 import po.misc.data.pretty_print.parts.options.RowID
+import po.misc.data.pretty_print.parts.template.RowDelegate
+import po.misc.data.pretty_print.parts.template.TemplateDelegate
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
@@ -60,9 +63,8 @@ sealed class RowBuilderBase<T>(
         return cell
     }
 
-    fun applyOptions(opts: CommonRowOptions?): RowOptions {
+    fun applyOptions(opts: CommonRowOptions?){
         options = toRowOptions(opts, options)
-        return options
     }
 
     open fun finalizeRow(container: GridBuilderBase<*>? = null): PrettyRowBase<*, T> {
@@ -71,6 +73,11 @@ sealed class RowBuilderBase<T>(
         prettyRow.options = options
         return prettyRow
     }
+
+    fun acceptDelegate(delegate: RowDelegate<T>){
+        delegate.attachHost(prettyRow)
+    }
+
     fun withControl(controller: RenderController){
         controller.bind(prettyRow)
     }
@@ -139,7 +146,6 @@ class RowBuilder<T>(
 ): RowBuilderBase<T>(receiverType), PrettyHelper {
 
     constructor(prettyRow: PrettyRow<T>):this(prettyRow.receiverType, prettyRow.templateID, prettyRow.options, prettyRow)
-
     override val prettyRow: PrettyRow<T> = prettyRow?: PrettyRow(receiverType, rowID, opts, emptyList())
 
     override fun finalizeRow(container: GridBuilderBase<*>?): PrettyRow<T> {
@@ -182,33 +188,36 @@ class ValueRowBuilder<S, T>(
     opts: CommonRowOptions? = null,
 ): RowBuilderBase<T>(receiverType){
 
+    constructor(
+        callable: CallableCollection<S, T>,
+        rowID: RowID? = null
+    ):this(callable.parameterType, callable.resultType, rowID){
+        dataLoader.apply(callable)
+    }
+
     override val prettyRow: PrettyValueRow<S, T> = PrettyValueRow(sourceType, receiverType, rowID,  opts)
-    val dataLoader: DataLoader<S, T> = prettyRow.dataLoader
+
+    val dataLoader: DataLoader<S, T> get() =  prettyRow.dataLoader
 
     internal var renderKey: RenderKey? = null
-
     var preSavedBuilder: (ValueRowBuilder<S, T>.() -> Unit)? = null
         internal set
-
     var preSavedBuilderUsed: Boolean = false
         private set
 
-
-    fun finalizeRow(callable: ReceiverCallable<S, T>, container: GridBuilderBase<*>?): PrettyValueRow<S, T>{
-        dataLoader.add(callable)
-        return finalizeRow(container)
+    fun acceptDelegate(delegate: TemplateDelegate<T>){
+        delegate.attachHost(prettyRow)
     }
 
     override fun finalizeRow(container: GridBuilderBase<*>?): PrettyValueRow<S, T>{
         preSavedBuilder?.invoke(this)
-        prettyRow.initCells(prettyCellsBacking)
+        super.finalizeRow(container)
         return prettyRow
     }
 
-
     fun preSaveBuilder(builder: ValueRowBuilder<S, T>.() -> Unit){
         preSavedBuilderUsed = true
-        preSavedBuilder =builder
+        preSavedBuilder = builder
     }
     fun renderSourceHere(){
         renderKey = RenderKey(prettyRow.size, RenderableType.Row)

@@ -6,6 +6,7 @@ import po.misc.data.pretty_print.Placeholder
 import po.misc.data.pretty_print.PrettyGridBase
 import po.misc.data.pretty_print.RenderableElement
 import po.misc.data.pretty_print.TemplateHost
+import po.misc.data.pretty_print.parts.common.RenderData
 import po.misc.data.pretty_print.parts.grid.RenderPlan
 import po.misc.data.pretty_print.parts.grid.RenderableType
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
@@ -15,6 +16,8 @@ import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.NamedTemplate
+import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
+import po.misc.data.pretty_print.parts.rendering.RenderParameters
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.types.token.TypeToken
@@ -79,6 +82,9 @@ class TemplatePlaceholder<T: Any>(
     override val sourceType:TypeToken<T> = receiverType
     override var options: RowOptions = RowOptions(Orientation.Horizontal)
     override val typeToken: TypeToken<T> = receiverType
+
+    override val name: String get() = "TemplatePlaceholder$typeName"
+
     //override val valueType: TypeToken<T> get() = receiverType
 
     /**
@@ -87,6 +93,9 @@ class TemplatePlaceholder<T: Any>(
      */
     var delegate: TemplateHost<T, T>? = null
 
+    override val index: Int  get() = delegate?.index ?: 0
+    override val keyParameters: KeyRenderParameters get() = delegate?.keyParameters ?: KeyRenderParameters()
+
     override val renderableType: RenderableType = RenderableType.Row
 
     override var enabled: Boolean = false
@@ -94,7 +103,7 @@ class TemplatePlaceholder<T: Any>(
     override val dataLoader: DataLoader<T, T> = DataLoader("TemplatePlaceholder", receiverType, receiverType)
 
     override val templateID: NamedTemplate get() = delegate?.templateID?:run {
-        generateRowID(receiverType, hostingGrid.hashCode() + hashCode())
+        generateRowID(this, hostingGrid.hashCode() + hashCode())
     }
 
     private fun cleanup(){
@@ -119,13 +128,17 @@ class TemplatePlaceholder<T: Any>(
     fun render(receiver: T, opts: CommonRowOptions?): String {
         return delegate?.renderFromSource(receiver, opts) ?:run { SpecialChars.EMPTY }
     }
-    override fun renderFromSource(source: T, opts: CommonRowOptions? ) = render(receiver =  source, opts)
+    override fun renderFromSource(source: T, opts: CommonRowOptions? ): String = render(receiver =  source, opts)
+
+    override fun renderInScope(parameter: RenderParameters): RenderData{
+        TODO("Not implemented in TemplatePlaceholder. Need to decide if receiver can be obtained from upper container")
+    }
 
     fun render(receiverList: List<T>, opts: CommonRowOptions?): String {
         val rendered = mutableListOf<String>()
         val useOptions = toRowOptions(opts, options)
         receiverList.forEach { receiver ->
-            val render = renderPlan.render(receiver, useOptions)
+            val render = renderPlan.render(receiver).styled
             rendered.add(render)
         }
         return rendered.joinToString(SpecialChars.NEW_LINE)

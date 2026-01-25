@@ -5,12 +5,13 @@ import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.strings.appendLine
 import po.misc.data.styles.SpecialChars
+import po.misc.data.text_span.TextSpan
 
 data class RenderPlanSnapshot (
     val renderPlan: RenderPlan<*, *>
 ): PrettyPrint{
 
-    val displayName: String = renderPlan.displayName
+    val displayName: TextSpan = renderPlan.displayName
     private val rowSize = renderPlan[PrettyRow].size
     val rowsCount: String get() = "${PrettyRow.prettyName}: $rowSize"
     val valueGridsSize :Int = renderPlan[PrettyValueGrid].size

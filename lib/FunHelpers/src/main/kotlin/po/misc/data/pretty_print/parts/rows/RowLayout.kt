@@ -1,6 +1,8 @@
 package po.misc.data.pretty_print.parts.rows
 
-enum class RowLayout {
+
+
+enum class Layout {
     Compact,
     Stretch,
     Centered

@@ -1,7 +1,7 @@
 package po.misc.dsl.configurator
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.NameValue
+import po.misc.interfaces.named.NameValue
 import kotlin.enums.enumEntries
 
 

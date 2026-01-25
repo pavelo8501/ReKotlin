@@ -24,17 +24,17 @@ class CompareInstances(
 
     private val instance1Hash : String get() {
        return  if(isSameInstance){
-            instanceInfo1.hash.stringify(Colour.Green).formatted
+            instanceInfo1.hash.stringify(Colour.Green).styled
         }else{
-            instanceInfo1.hash.stringify(Colour.Red).formatted
+            instanceInfo1.hash.stringify(Colour.Red).styled
         }
     }
 
     private val instance2Hash : String get() {
         return  if(isSameInstance){
-            instanceInfo2.hash.stringify(Colour.Green).formatted
+            instanceInfo2.hash.stringify(Colour.Green).styled
         }else{
-            instanceInfo2.hash.stringify(Colour.Red).formatted
+            instanceInfo2.hash.stringify(Colour.Red).styled
         }
     }
 

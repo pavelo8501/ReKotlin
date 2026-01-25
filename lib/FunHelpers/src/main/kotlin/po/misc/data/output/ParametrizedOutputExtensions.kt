@@ -35,10 +35,10 @@ fun Any.output(
     fun stringifyReceiver(receiver: Any):String{
        return when (receiver) {
             is List<*> -> {
-                receiver.stringify().formatted
+                receiver.stringify().styled
             }
             else -> {
-                receiver.stringify().formatted
+                receiver.stringify().styled
             }
         }
     }

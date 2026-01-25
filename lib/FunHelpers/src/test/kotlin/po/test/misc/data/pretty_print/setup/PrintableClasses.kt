@@ -13,7 +13,9 @@ class PrintableElement(
     val parameter: String = "Parameter",
     val value: Int = 1,
 ):Templated<PrintableElement>{
-    override val type: TypeToken<PrintableElement> = tokenOf()
+
+    override val receiverType: TypeToken<PrintableElement> = tokenOf()
+
 }
 
 class PrintableNested(
@@ -47,7 +49,7 @@ class PrintableRecord(
     var elements: List<PrintableElement> = emptyList()
 ): Templated<PrintableRecord> {
 
-    override val type: TypeToken<PrintableRecord> = tokenOf()
+    override val receiverType: TypeToken<PrintableRecord> = tokenOf()
 
     init {
         if(elements.isEmpty()) {

@@ -1,21 +1,12 @@
 package po.test.misc.data.pretty_print.formatters
 
-import po.misc.data.output.output
-import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.formatters.TextFormatter
 import po.misc.data.pretty_print.formatters.text_modifiers.CellStyler
 import po.misc.data.pretty_print.formatters.text_modifiers.TextTrimmer
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.RowOptions
-import po.misc.data.strings.FormattedText
-import po.misc.data.styles.Colour
-import po.misc.data.styles.TextStyle
 import po.misc.data.styles.TextStyler
-import po.misc.data.styles.contains
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class TestTextFormatter : TextStyler {
 

@@ -33,6 +33,14 @@ fun <T> MutableList<T>.addNotNull(element:T?){
     }
 }
 
+fun <T> MutableList<T>.addAllNotNull(elements: List<T>?){
+    if(elements != null){
+        this.addAll(elements)
+    }
+}
+
+
+
 fun MutableList<String>.addNotBlank(string: String?, ifBlank: (() -> Unit)? = null): Boolean{
   return if(!string.isNullOrBlank()){
         add(string)
@@ -81,6 +89,62 @@ fun <K: Any, V: Any>  MutableMap<K, V>.putOverwriting(key: K, value:V, overwritt
       }
 }
 
+inline fun <reified T: Any> Array<out T>.flattenVarargs(): List<T> {
+    return buildList {
+        for (element in this@flattenVarargs) {
+            when (element) {
+                is List<*> -> addAll(element.filterIsInstance<T>())
+                is Array<*> -> addAll(element.filterIsInstance<T>())
+                else -> add(element)
+            }
+        }
+    }
+}
+
+fun <T> List<T>.lastIndexedOrNull(action: ((Int, T) -> Unit)? = null): Pair<Int, T>? {
+    val size = this.size
+    val last = this.lastOrNull()
+    if(last != null) {
+        action?.invoke(size-1, last)
+       return Pair(size-1, last)
+    }else{
+        return null
+    }
+}
+
+
+
+fun <T> List<T>.firstIndexedOrNull(predicate: (T) -> Boolean ): Pair<Int, T>? {
+    val index =  indexOfFirst(predicate)
+    return if(index > -1){
+        Pair(index,get(index))
+    }else{
+        null
+    }
+}
+
+fun <T> List<T>.second(): T {
+    if (size < 2) {
+        throw NoSuchElementException("List is empty.")
+    }
+    return this[1]
+}
+
+fun <T> List<T>.third(): T {
+    if (size < 3) {
+        throw NoSuchElementException("List is empty.")
+    }
+    return this[2]
+}
+
+fun <T> List<T>.warnOverwriting(value: T, overwrittenAction: (T)-> Unit){
+    val indexed = firstIndexedOrNull {
+        it === value
+    }
+    if(indexed != null){
+        overwrittenAction.invoke(indexed.second)
+    }
+}
 
 
 

@@ -1,6 +1,7 @@
 package po.misc.data.pretty_print.dsl
 
-import po.misc.callbacks.callable.asPropertyCallable
+
+import po.misc.callbacks.callable.toCallable
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.grid.GridBuilder
@@ -14,7 +15,7 @@ import po.misc.data.pretty_print.parts.options.RowPresets
 import po.misc.data.pretty_print.parts.options.GridID
 import po.misc.data.pretty_print.parts.options.ViewPortSize
 import po.misc.data.pretty_print.parts.options.RowID
-import po.misc.data.pretty_print.parts.rows.RowLayout
+import po.misc.data.pretty_print.parts.rows.Layout
 import po.misc.data.pretty_print.rows.RowBuilder
 import po.misc.data.pretty_print.rows.ValueRowBuilder
 import po.misc.types.token.TokenFactory
@@ -41,8 +42,8 @@ internal open class DSLEngine: TokenFactory, PrettyHelper{
 
     fun buildRowOption(
         orientation: Orientation = Orientation.Horizontal,
-        layout: RowLayout = RowLayout.Compact,
-        render: ViewPortSize = Console220,
+        layout: Layout = Layout.Compact,
+        render: ViewPortSize = Console180,
         builder:  RowOptions.()-> Unit
     ) : RowOptions{
         val opt = RowOptions(orientation, layout, render)
@@ -95,7 +96,7 @@ internal open class DSLEngine: TokenFactory, PrettyHelper{
         rowID: RowID? = null,
         noinline builderAction: ValueRowBuilder<T, V>.()-> Unit
     ): ValueRowBuilder<T, V> {
-        val callable = property.asPropertyCallable(token)
+        val callable = property.toCallable(token)
         val container = ValueRowBuilder(token,callable.receiverType, rowID)
         container.dataLoader.add(callable)
         container.preSaveBuilder(builderAction)
@@ -109,7 +110,7 @@ internal open class DSLEngine: TokenFactory, PrettyHelper{
         rowID: RowID? = null,
         noinline builderAction: ValueRowBuilder<T, V>.()-> Unit
     ): ValueRowBuilder<T, V> {
-        val callable = property.asPropertyCallable(token)
+        val callable = property.toCallable(token)
         val container = ValueRowBuilder(token, TypeToken<V>(), rowID)
         container.dataLoader.add(callable)
         container.preSaveBuilder(builderAction)

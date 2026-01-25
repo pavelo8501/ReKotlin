@@ -30,23 +30,6 @@ class DataLoader<S, T>(
     override val receiverType: TypeToken<T>,
 ): TraceableContext, TextBuilder, CallableRepositoryHub<S, T> {
 
-
-
-    class DataLoaderData(
-        private val loader: DataLoader<*, *>
-    ): PrettyPrint {
-        val name: String = "${loader.hostName} snapshot"
-        val hasProperty: String get() = loader.elementRepository.hasProperty.toFormatted()
-        val hasProvider: String = loader.elementRepository.hasProvider.toFormatted()
-        val hostResolvedSignalText: String get() = loader.hostResolved.info().formattedString
-        val snapshot: String = snapshot().joinToString(SpecialChars.NEW_LINE)
-        override val formattedString: String get() = buildString {
-           appendLine("$name snapshot")
-           append(snapshot)
-        }
-        override fun toString(): String = "ReceiverLoaderData[$loader]"
-    }
-
     constructor(
         hostName: String,
         listProvider: ListProvider<S, T>
@@ -55,9 +38,9 @@ class DataLoader<S, T>(
     }
     constructor(
         hostName: String,
-        dataProvider: CallableRepositoryBase<S, T>
-    ):this(hostName, dataProvider.sourceType, dataProvider.receiverType){
-        elementRepository.apply(dataProvider)
+        collection: CallableCollection<S, T>
+    ):this(hostName, collection.parameterType, collection.resultType){
+        elementRepository.apply(collection)
     }
 
     override val elementRepository: ElementProvider<S, T> = ElementProvider(sourceType, receiverType)
@@ -129,12 +112,12 @@ class DataLoader<S, T>(
         }
         return null
     }
-    fun resolveValue(receiver:S, failureAction:(DataLoaderData)-> Nothing):T{
+    fun resolveValue(receiver:S, failureAction:(DataLoader<*,*>)-> Nothing):T{
         val value = resolveValue(receiver)
         if(value != null){
             return value
         }
-        failureAction.invoke(DataLoaderData(this))
+        failureAction.invoke(this)
     }
     fun resolveList():List<T>{
         val result = mutableListOf<T>()
@@ -157,9 +140,7 @@ class DataLoader<S, T>(
         }
         return result
     }
-    fun info(): DataLoaderData {
-        return DataLoaderData(this)
-    }
+
     fun copy():DataLoader<S, T>{
         val loaderCopy = DataLoader(hostName, sourceType, receiverType)
         loaderCopy.apply(elementRepository)

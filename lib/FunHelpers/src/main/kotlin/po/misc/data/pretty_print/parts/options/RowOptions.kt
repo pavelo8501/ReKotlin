@@ -1,26 +1,47 @@
 package po.misc.data.pretty_print.parts.options
 
-import po.misc.data.pretty_print.parts.rendering.GridParameters
-import po.misc.data.pretty_print.parts.rows.RowLayout
-import po.misc.data.strings.appendGroup
-import po.misc.data.styles.Colour
 
-enum class Orientation{ Horizontal, Vertical }
+import po.misc.data.pretty_print.parts.decorator.BorderPosition
+import po.misc.data.pretty_print.parts.common.BorderInitializer
+import po.misc.data.pretty_print.parts.common.TaggedSeparator
+import po.misc.data.pretty_print.parts.rows.Layout
+import po.misc.data.styles.SpecialChars
 
+
+enum class Orientation(val separator: String){
+    Horizontal(SpecialChars.EMPTY),
+    Vertical(SpecialChars.NEW_LINE)
+}
 
 class RowOptions(
     override var orientation : Orientation,
-    var layout: RowLayout = RowLayout.Compact,
-    override var viewport: ViewPortSize = Console220
-): CommonRowOptions {
+    var layout: Layout = Layout.Compact,
+): CommonRowOptions, BorderInitializer {
 
-    constructor(orientation : Orientation,  viewport: ViewPortSize) : this(orientation,  RowLayout.Compact,  viewport)
+    constructor(
+        orientation: Orientation,
+        layout: Layout,
+        viewportSize: ViewPortSize
+    ): this(orientation, layout){
+        viewport = viewportSize
+    }
+
+    constructor(
+        orientation: Orientation,
+        viewportSize: ViewPortSize,
+        layout: Layout = Layout.Compact,
+    ): this(orientation, layout){
+        viewport = viewportSize
+    }
 
     constructor(rowPreset: RowPresets) : this(rowPreset.orientation) {
         orientation =  rowPreset.orientation
         renderBorders = rowPreset.renderBorders
         cellOptions = PrettyHelper.toOptions(rowPreset.cellOptions)
     }
+
+    override var viewport: ViewPortSize? = null
+    var align: Align = Align.Left
 
     var renderOnlyList: List<RowID> = listOf()
         internal set
@@ -31,36 +52,21 @@ class RowOptions(
     override var plainKey: Boolean = false
         internal set
 
-    var sealed: Boolean = false
-        internal set
     var edited: Boolean = false
         internal set
 
     override var renderBorders: Boolean = true
 
-    var cellSeparator: Border = Border(" | ", enabled = false)
+    var cellSeparator: InnerBorder = InnerBorder(" | ", enabled = false)
 
-    var borders: Borders = Borders()
-        private set
+    val topBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Top, "")
+    val bottomBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Bottom, "")
+    val leftBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Left, "")
+    val rightBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Right, "")
+
+    override var separatorSet: List<TaggedSeparator<BorderPosition>> = listOf(topBorder, bottomBorder, leftBorder, rightBorder)
 
     override var cellOptions: Options? = null
-
-    fun borders(bottomBorder: Char, topBorder: Char? = null, sideBorders: Char = ' '){
-        borders.bottomBorder =  Border(bottomBorder)
-        topBorder?.let {
-            borders.topBorder = Border(it)
-        }
-        borders.leftBorder = Border(sideBorders)
-    }
-    fun borders(borderColour: Colour, bottomBorder: Char, topBorder: Char? = null, sideBorders: Char? = null){
-        borders.bottomBorder =  Border(bottomBorder, borderColour)
-        topBorder?.let {
-            borders.topBorder = Border(it, borderColour)
-        }
-        sideBorders?.let {
-            borders.leftBorder = Border(it, borderColour)
-        }
-    }
 
     fun useId(rowId: RowID?):RowOptions{
         if(rowId != null){
@@ -75,49 +81,35 @@ class RowOptions(
         return this
     }
 
-    fun exclude(list: List<RowID>?, includeUnnamed: Boolean = true): RowOptions {
-        excludeFromRenderList = list ?: emptyList()
-        renderUnnamed = includeUnnamed
-        renderOnlyList = emptyList()
-        edited = true
-        sealed = true
-        return this
-    }
+//    fun exclude(list: List<RowID>?, includeUnnamed: Boolean = true): RowOptions {
+//        excludeFromRenderList = list ?: emptyList()
+//        renderUnnamed = includeUnnamed
+//        renderOnlyList = emptyList()
+//        edited = true
+//        return this
+//    }
 
     override fun asOptions(width: Int): Options = Options(this)
     override fun asRowOptions(): RowOptions = this
 
     private fun copyOptions():RowOptions{
-        return RowOptions(orientation, layout, viewport).also {
-            it.sealed = sealed
+        return RowOptions(orientation, layout).also {
+            it.viewport = viewport
             it.renderOnlyList = renderOnlyList
             it.excludeFromRenderList = excludeFromRenderList
             it.renderUnnamed = renderUnnamed
             it.renderBorders = renderBorders
-            it.borders = borders.copy()
+            it.separatorSet = listOf(topBorder.copy(), bottomBorder.copy(), leftBorder.copy(), rightBorder.copy())
             it.cellSeparator = cellSeparator.copy()
         }
     }
-    fun copy(noEdit: Boolean = false): RowOptions {
-        val opt = copyOptions()
-        opt.sealed = noEdit
-        return opt
-    }
-    fun copy(rowOrientation: Orientation, noEdit: Boolean = sealed): RowOptions {
+    fun copy(rowOrientation: Orientation): RowOptions {
         val opt = copyOptions()
         opt.orientation = rowOrientation
-        opt.sealed = noEdit
         return opt
     }
-    fun copy(rowId: RowID, rowOrientation: Orientation = orientation, noEdit: Boolean = sealed): RowOptions {
-        val opt = copyOptions()
-        opt.orientation = rowOrientation
-        opt.sealed = noEdit
-        return opt
-    }
-    fun copy(gridParameters: GridParameters): RowOptions {
+    fun copy(): RowOptions {
         val copy = copyOptions()
-        copy.viewport = gridParameters.rowOptions.viewport
         return copy
     }
 
@@ -136,15 +128,24 @@ class RowOptions(
         result = 31 * result + viewport.hashCode()
         return result
     }
-
     override fun toString(): String {
       return  buildString {
             appendLine("RowOptions[")
             append("Orientation: $orientation ")
             append("Edited: $edited ")
-            append("MaxWidth: ${viewport.size} ")
+            append("ViewportSize: ${viewport?.size?:"N/A"} ")
             append("Layout: ${layout.name}]")
         }
     }
-    companion object
+    companion object{
+        operator fun invoke(
+            orientation : Orientation = Orientation.Horizontal,
+            builderAction: RowOptions.() -> Unit
+        ):RowOptions{
+            val row = RowOptions(orientation)
+            builderAction.invoke(row)
+            return row
+        }
+    }
+
 }

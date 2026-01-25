@@ -24,7 +24,7 @@ interface TextBuilder: TextStyler{
         }
     }
      fun Any.toFormatted(): String{
-        return formatKnownTypes(this).formatted
+        return formatKnownTypes(this).styled
     }
 
     companion object:  StringFormatter()

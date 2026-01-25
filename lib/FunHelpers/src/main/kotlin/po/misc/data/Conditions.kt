@@ -47,6 +47,8 @@ fun String?.ifNotBlank(action: ((String)-> Unit)? = null):String?{
     return this
 }
 
+
+
 val <T> T.isUnset : Boolean get() {
     return when(val thisReceiver = this){
         is String -> thisReceiver.isNotBlank()

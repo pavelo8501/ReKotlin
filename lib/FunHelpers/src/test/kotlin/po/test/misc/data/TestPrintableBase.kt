@@ -1,7 +1,6 @@
 package po.test.misc.data
 
 import org.junit.jupiter.api.Test
-import po.misc.data.NameValue
 import po.misc.data.printable.PrintableBase
 import po.misc.data.styles.colorize
 import po.misc.data.processors.DataProcessor
@@ -13,6 +12,7 @@ import kotlin.test.assertTrue
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.PrintableGroup
 import po.misc.data.printable.companion.nextLine
+import po.misc.interfaces.named.NameValue
 import po.misc.time.TimeHelper
 import po.misc.types.token.TypeToken
 import kotlin.test.assertNotEquals

@@ -18,7 +18,7 @@ fun List<*>.output(prefix: String = "", colour: Colour? = null){
     }
     val result = joinToString(separator = SpecialChars.NEW_LINE) { element ->
         val formatedEntry = TextStyler.formatKnownTypes(element)
-        formatedEntry.formatted
+        formatedEntry.styled
     }
     println(result)
 }
@@ -44,7 +44,7 @@ fun <T: Any> List<T>.output(
         val builder = StringBuilder()
         val result = transform.invoke(builder, entry)
         val resultString = builder.toString()
-        println(resultString.stringify(colour).formatted)
+        println(resultString.stringify(colour).styled)
     }
 }
 

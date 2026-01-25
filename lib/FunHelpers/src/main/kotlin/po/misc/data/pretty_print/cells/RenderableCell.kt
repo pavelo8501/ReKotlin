@@ -1,24 +1,16 @@
 package po.misc.data.pretty_print.cells
 
+import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.Options
-import po.misc.data.pretty_print.parts.rendering.CellRenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.rendering.CellParameters
 import po.misc.types.token.TypeToken
 
 sealed interface RenderableCell<T>{
-    val currentRenderOpts: Options
-
+    var currentRenderOpts: Options
     val sourceType: TypeToken<T>
     val keyText: String?
-    val keySize : Int get() = keyText?.length?:0
-    val keySegmentSize: Int get() {
-        if(keyText.isNullOrBlank()){
-            return 0
-        }
-        return keySize + currentRenderOpts.keySeparator.size
-    }
-    fun parametrizeRender(renderParameters: CellRenderParameters)
+    fun CellParameters.scopedRender(receiver: T): RenderRecord
 }
 
 sealed interface StaticRenderingCell: RenderableCell<Unit>{

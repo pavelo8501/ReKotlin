@@ -41,3 +41,8 @@ inline fun <T: TraceableContext, R> T.longOrManaged(param1:String?, param2:Strin
    return action.invoke(this, param1Long, param1Long)
 
 }
+
+
+fun Int?.coerceAtLeast(minimum: Int): Int {
+    return this?.coerceAtLeast(minimumValue =  minimum) ?: minimum
+}

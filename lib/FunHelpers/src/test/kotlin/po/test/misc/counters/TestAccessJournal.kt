@@ -21,7 +21,7 @@ class TestAccessJournal: Component, Templated<AccessRecord<TestAccess>> {
 
     enum class TestAccess { Access, Read, Fail }
 
-    override val type: TypeToken<AccessRecord<TestAccess>> = tokenOf()
+    override val receiverType: TypeToken<AccessRecord<TestAccess>> = tokenOf()
 
     interface InstanceInterface
 

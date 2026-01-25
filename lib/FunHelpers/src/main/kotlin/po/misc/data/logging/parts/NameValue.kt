@@ -1,9 +1,7 @@
 package po.misc.data.logging.parts
 
 
-import po.misc.data.HasValue
-import po.misc.data.KeyedValue
-import po.misc.data.NameValue
+import po.misc.interfaces.named.KeyedValue
 import po.misc.reflection.getAnnotated
 import po.misc.types.getOrManaged
 import po.misc.types.safeCast
@@ -78,17 +76,6 @@ class ReflectiveTable< T: Any >(
         }
     }
 }
-
-//inline fun <reified T: Any> T.reflectiveTable(
-//    builder: ReflectiveTable<T>.(T)-> Unit
-//): ReflectiveTable<T>{
-//   val table =  ReflectiveTable<T>(TypeToken.create())
-//   builder.invoke(table, this)
-//   return table
-//}
-//
-
-
 
 
 

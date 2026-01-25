@@ -1,7 +1,7 @@
 package po.misc.collections
 
 import po.misc.context.CTX
-import po.misc.data.NameValue
+import po.misc.interfaces.named.NameValue
 
 class CompositeKey (
     val component: CTX,

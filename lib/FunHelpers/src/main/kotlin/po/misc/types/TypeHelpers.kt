@@ -118,6 +118,18 @@ fun <T: Any> T?.getOrThrow(
 }
 
 
+inline fun <reified T> T?.getOrThrow(
+    failureAction: (String)-> Nothing,
+):T {
+    if(this == null){
+        failureAction.invoke(T::class.simpleOrAnon)
+    }else{
+        return this
+    }
+}
+
+
+
 
 /**
  * Reified overload of [getOrThrow] that infers the expected type automatically.

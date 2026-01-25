@@ -22,8 +22,6 @@ open class ReactiveList<T: Any, R>(
         val name: String = "$formattedClassName on ${ClassResolver.instanceName(host)}"
     }
 
-//    constructor(options: Options?, onNewEntry: (T) -> Unit):this(options, onNewEntry)
-
 
     var sideEffects: Boolean
         get() = options?.disableSideEffects?:false

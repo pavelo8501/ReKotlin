@@ -8,6 +8,7 @@ import po.misc.data.pretty_print.parts.options.Options
 
 import po.misc.data.styles.Colour
 import po.misc.time.TimeHelper
+import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
 import java.time.Instant
 
@@ -16,7 +17,7 @@ data class AccessRecord <E: Enum<E>>(
     val journal : JournalBase<E>,
 ): JournalEntry<E>, PrettyPrint, TimeHelper, Templated<AccessRecord<*>> {
 
-    override val type = tokenOf<AccessRecord<*>>()
+    override val receiverType: TypeToken<AccessRecord<*>> = tokenOf<AccessRecord<*>>()
 
     val hostName : String get() =  journal.hostInstanceInfo.instanceName
 

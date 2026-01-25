@@ -45,12 +45,8 @@ inline fun <reified TH: Throwable> error(message: Any, traceOption: TraceOptions
 fun error(message: Any, traceOption: TraceOptions): Nothing =
     error<IllegalStateException>(message, traceOption)
 
-
-
 fun error(message: String, data: PrettyPrint, traceOption: TraceOptions = TraceOptions.Default): Nothing =
     error<IllegalStateException>("$message: ${data.formattedString}", traceOption)
-
-
 
 
 @OptIn(ExperimentalContracts::class)
@@ -74,3 +70,15 @@ fun <T : Any> checkNotNull(value: T?,  traceOption: TraceOptions): T {
     return checkNotNull(value, traceOption) { "Required value was null." }
 }
 
+
+
+@OptIn(ExperimentalContracts::class)
+fun <T> T.checkIfTrue(predicate: Boolean,  failAction: (T)-> Unit):T{
+    contract {
+        returns() implies predicate
+    }
+    if (!predicate) {
+        failAction.invoke(this)
+    }
+    return this
+}

@@ -1,7 +1,6 @@
 package po.test.misc.data.pretty_print.cells
 
 import po.misc.data.PrettyPrint
-import po.misc.data.logging.procedural.ProceduralEntry
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.cells.ComputedCell
@@ -10,11 +9,10 @@ import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.RowOptions
+import po.misc.data.strings.contains
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
-import po.misc.data.styles.contains
 import po.misc.reflection.displayName
-import po.misc.types.token.TypeToken
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

@@ -7,7 +7,6 @@ import po.misc.context.component.configSubject
 import po.misc.context.component.initSubject
 import po.misc.context.log_provider.LogProvider
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.NameValue
 import po.misc.data.logging.log_subject.startProcSubject
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.processor.LogProcessor
@@ -16,6 +15,7 @@ import po.misc.debugging.ClassResolver
 import po.misc.dsl.configurator.data.ConfigurationTracker
 import po.misc.dsl.configurator.data.ConfiguratorInfo
 import po.misc.functions.Throwing
+import po.misc.interfaces.named.NameValue
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import po.misc.types.token.TokenFactory

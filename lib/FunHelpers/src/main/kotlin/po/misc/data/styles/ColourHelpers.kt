@@ -1,11 +1,10 @@
 package po.misc.data.styles
 
-import po.misc.data.HasText
-import po.misc.data.styles.Colour.RESET
+
+import po.misc.interfaces.named.HasText
 
 
-fun String.colorize(colour: Colour): String = TextStyler.style(this, colour)
-fun String.colorize(bgColour: BGColour): String = TextStyler.style(this, bgColour)
+
 fun String.colorize(bgColour: BGColour, colour: Colour): String = TextStyler.style(this, colour, bgColour)
 fun String.applyColour(colour: Colour): String = TextStyler.applyStyleCode(this,  colour)
 

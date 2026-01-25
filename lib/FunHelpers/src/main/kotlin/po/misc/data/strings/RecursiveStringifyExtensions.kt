@@ -11,9 +11,9 @@ import kotlin.reflect.KProperty1
 //){
 //    val entries : Collection<T> = property.get(receiver)
 //    entries.forEach { entry->
-//        val formatted = StringFormatterBase.formatKnownTypes2(entry)
-//        parentFormated.addFormated(formatted)
-//        recursiveStringify(entry, property, formatted, colour)
+//        val styled = StringFormatterBase.formatKnownTypes2(entry)
+//        parentFormated.addFormated(styled)
+//        recursiveStringify(entry, property, styled, colour)
 //    }
 //}
 

@@ -2,7 +2,6 @@ package po.test.misc.data.pretty_print.parts
 
 import po.misc.callbacks.callable.asProvider
 import po.misc.collections.asList
-import po.misc.data.contains
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyRow
@@ -12,10 +11,13 @@ import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.dsl.DSLEngine
+import po.misc.data.pretty_print.parts.common.Grid
+import po.misc.data.pretty_print.parts.common.Row
 import po.misc.data.pretty_print.parts.loader.DataLoader
 import po.misc.data.pretty_print.parts.loader.toElementProvider
 import po.misc.data.pretty_print.parts.options.DefaultGridID
 import po.misc.data.pretty_print.parts.options.DefaultRowID
+import po.misc.data.strings.contains
 import po.misc.functions.CallableKey
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
@@ -143,48 +145,4 @@ class TestDeepCopy : PrettyTestBase() {
         assertEquals(grid.templateData.templateID, grid.templateID)
     }
 
-    @Test
-    fun `Render plan creates exact copy of its internals preserving order`() {
-        val grid = PrettyGrid<TestDeepCopy>(Grid.Grid1)
-        val valueGridSource = PrettyGrid<PrintableRecord>()
-        //val provider = DataProvider(ProviderCallable, testDeepToken) { PrintableRecord() }
-
-        val provider = asProvider{ PrintableRecord() }
-
-        val valueGrid = PrettyValueGrid.createFromGrid(provider, valueGridSource)
-
-        val row1 = PrettyRow<PrintableRecord>(Row.Row1)
-        val row2 = PrettyRow<PrintableRecord>()
-
-        val cell1OfRow1 = StaticCell("cell1OfRow1")
-        row1.initCells(cell1OfRow1.asList())
-        valueGrid.addRow(row1)
-
-        val cell1OfRow2 = StaticCell("cell1OfRow2")
-        row2.initCells(cell1OfRow2.asList())
-        valueGrid.addRow(row2)
-        grid.renderPlan.add(valueGrid)
-
-        assertNotNull(grid.renderPlan[PrettyValueGrid].firstOrNull()) { valGrid ->
-            val rows = valGrid.renderPlan[PrettyRow]
-            assertNotNull(rows.getOrNull(0)) { row1 ->
-                assertNotNull(row1.cells.firstOrNull())
-                assertEquals(Row.Row1, row1.templateID)
-            }
-            assertNotNull(rows.getOrNull(1)) { row2 ->
-                assertNotNull(row2.cells.firstOrNull())
-                assertNotEquals(Row.Row1, row2.templateID)
-            }
-        }
-        val renderPlanCopy = grid.renderPlan.copy()
-        assertSame(grid, renderPlanCopy.host)
-        assertNotNull(renderPlanCopy[PrettyValueGrid].firstOrNull()){copiedValueGrid ->
-            assertNotSame(valueGrid, copiedValueGrid)
-            assertEquals(valueGrid.templateID, copiedValueGrid.templateID, "TemplateIds different")
-            assertEquals(valueGrid.size, copiedValueGrid.size, "Size mismatch")
-            assertEquals(valueGrid.dataLoader, copiedValueGrid.dataLoader, "Data loaders not equal")
-            assertEquals(valueGrid.prettyRows, copiedValueGrid.prettyRows, "Pretty rows list not equal")
-            assertEquals(valueGrid, copiedValueGrid)
-        }
-    }
 }

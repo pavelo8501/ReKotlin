@@ -1,28 +1,17 @@
 package po.test.misc.data.pretty_print.formatters
 
-import po.misc.data.helpers.lengthNoAnsi
-import po.misc.data.output.output
-import po.misc.data.pretty_print.formatters.text_modifiers.TextTrimmer
-import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.RowOptions
-import po.misc.data.pretty_print.parts.rendering.BoundRenderNode
 import po.misc.data.styles.TextStyler
-import po.misc.data.styles.contains
-import po.misc.reflection.displayName
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
 import po.test.misc.data.pretty_print.setup.PrettyTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 
 
 class TestTextTrimmer: PrettyTest<TestTextTrimmer>(true), TextStyler  {
 
-    override val type: TypeToken<TestTextTrimmer> = tokenOf()
+    override val receiverType: TypeToken<TestTextTrimmer> = tokenOf()
 
     private val rowOptions= RowOptions( Orientation.Horizontal)
     private val text: String = "Longer text should be trimmed to initial width of the cell"

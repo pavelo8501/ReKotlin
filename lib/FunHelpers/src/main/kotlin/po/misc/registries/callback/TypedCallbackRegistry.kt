@@ -2,7 +2,7 @@ package po.misc.registries.callback
 
 import po.misc.collections.CompositeKey
 import po.misc.context.CTX
-import po.misc.data.NameValue
+import po.misc.interfaces.named.NameValue
 
 
 abstract class TypedCallback<T, R>(){

@@ -5,10 +5,9 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.buildPrettyRow
-import po.misc.data.pretty_print.cells.KeyedCell
+import po.misc.data.strings.contains
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyler
-import po.misc.data.styles.contains
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableRecord
 import po.test.misc.data.pretty_print.setup.PrintableRecordSubClass

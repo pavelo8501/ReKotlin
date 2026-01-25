@@ -7,6 +7,8 @@ import po.misc.data.pretty_print.buildPrettyGrid
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.buildPrettyRow
+import po.misc.data.pretty_print.parts.common.Grid
+import po.misc.data.pretty_print.parts.common.Row
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
 import po.test.misc.data.pretty_print.setup.PrintableElement
 import po.test.misc.data.pretty_print.setup.PrintableRecord

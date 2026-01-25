@@ -1,52 +1,59 @@
 package po.misc.data.pretty_print.grid
 
+import po.misc.callbacks.callable.CallableCollection
 import po.misc.callbacks.callable.CallableStorage
+import po.misc.callbacks.callable.PropertyCallable
 import po.misc.callbacks.callable.ReceiverCallable
 import po.misc.counters.SimpleJournal
 import po.misc.data.pretty_print.PrettyGridBase
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyRowBase
 import po.misc.data.pretty_print.PrettyValueGrid
+import po.misc.data.pretty_print.grid.ValueGridBuilder
 import po.misc.data.pretty_print.parts.grid.RenderKey
 import po.misc.data.pretty_print.parts.grid.RenderableType
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.GridID
+import po.misc.data.pretty_print.parts.template.TemplateDelegate
 import po.misc.types.token.TypeToken
+import po.misc.types.token.asElementType
 
-class ValueGridBuilder<T, V>(
-    val sourceType:TypeToken<T>,
-    receiverType:TypeToken<V>,
+
+class ValueGridBuilder<S, T>(
+    val sourceType: TypeToken<S>,
+    receiverType: TypeToken<T>,
     gridID: GridID? = null,
     opts: CommonRowOptions? = null,
-): GridBuilderBase<V>(receiverType), PrettyHelper{
+): GridBuilderBase<T>(receiverType), PrettyHelper{
 
-    override val prettyGrid: PrettyValueGrid<T, V> = PrettyValueGrid(sourceType, receiverType, gridID, opts)
+    constructor(
+        callableCollection: CallableCollection<S, T>,
+        gridID: GridID? = null,
+    ):this(callableCollection.parameterType, callableCollection.resultType, gridID){
+        prettyGrid.dataLoader.apply(callableCollection)
+    }
 
-    var preSavedBuilder: (ValueGridBuilder<T, V>.() -> Unit)? = null
+    override val prettyGrid: PrettyValueGrid<S, T> = PrettyValueGrid(sourceType, receiverType, gridID, opts)
+
+    var preSavedBuilder: (ValueGridBuilder<S, T>.() -> Unit)? = null
     var isPreSaved: Boolean = false
         internal set
 
-    internal val rowsBacking = mutableListOf<PrettyRow<V>>()
-    val rows: List<PrettyRowBase<V, *>> get() = prettyGrid.rows
-
+    internal val rowsBacking = mutableListOf<PrettyRow<T>>()
+    val rows: List<PrettyRowBase<T, *>> get() = prettyGrid.rows
     fun renderSourceHere(){
         renderKey = RenderKey(rowsBacking.size, RenderableType.Grid)
     }
-    fun preSaveBuilder(builder:  ValueGridBuilder<T, V>.() -> Unit){
+    fun preSaveBuilder(builder:  ValueGridBuilder<S, T>.() -> Unit){
         isPreSaved = true
         preSavedBuilder = builder
     }
-    fun applyOptions(opt: CommonRowOptions?){
-        toRowOptionsOrNull(opt)?.let {
-            options = it
-        }
-    }
+
     private fun orderRows(): Boolean{
-        val rec =  journal.method("orderRows", SimpleJournal.ParamRec("renderKey", renderKey))
         val key = renderKey
         if(key != null){
-            val takeCount = (key.order).coerceAtLeast(0)
+            val takeCount = (key.index).coerceAtLeast(0)
             rowsBacking.take(takeCount).forEachIndexed { index, row ->
                 prettyGrid.addRow(row)
                 rowsBacking.removeAt(index)
@@ -65,37 +72,35 @@ class ValueGridBuilder<T, V>(
         return transferred
     }
 
+    fun acceptDelegate(delegate: TemplateDelegate<*>){
+        delegate.attachHost(prettyGrid)
+    }
 
-
-    fun finalizeGrid(sourceGrid: PrettyGridBase<T>): PrettyValueGrid<T, V>{
+    fun finalizeGrid(sourceGrid: PrettyGridBase<S>): PrettyValueGrid<S, T>{
         isPreSaved = false
         journal.method("finalizeGrid", SimpleJournal.ParamRec("isPreSaved", isPreSaved))
-        val ordered = orderRows()
+        orderRows()
         preSavedBuilder?.invoke(this)
-        val transferred = transferRows()
+        transferRows()
+        prettyGrid.applyOptions(options)
         sourceGrid.renderPlan.add(prettyGrid)
         return prettyGrid
     }
-
-    fun finalizeGrid(callable: ReceiverCallable<T, V>, sourceContainer: PrettyGridBase<T>): PrettyValueGrid<T, V>{
-        prettyGrid.dataLoader.add(callable)
-        return finalizeGrid(sourceGrid = sourceContainer)
-    }
-    @JvmName("finalizeGridListCallable")
-    fun finalizeGrid(listCallable: ReceiverCallable<T, List<V>>, sourceContainer: PrettyGridBase<T>): PrettyValueGrid<T, V>{
-        prettyGrid.dataLoader.add(listCallable)
-        return finalizeGrid(sourceGrid = sourceContainer)
-    }
-    @JvmName("finalizeGridCallableRepositoryList")
-    fun finalizeGrid(listRepository: CallableStorage<T, List<V>>, sourceContainer: PrettyGridBase<T>): PrettyValueGrid<T, V>{
-        prettyGrid.dataLoader.apply(listRepository)
-        return finalizeGrid(sourceGrid = sourceContainer)
-    }
-    fun finalizeGrid(elementRepository: CallableStorage<T, V>, sourceContainer: PrettyGridBase<T>): PrettyValueGrid<T, V>{
-        prettyGrid.dataLoader.apply(elementRepository)
-        return finalizeGrid(sourceGrid = sourceContainer)
-    }
-    override fun addRow(row: PrettyRow<V>): PrettyRow<V>{
+//    @JvmName("finalizeGridListCallable")
+//    fun finalizeGrid(listCallable: ReceiverCallable<S, List<T>>, sourceContainer: PrettyGridBase<S>): PrettyValueGrid<S, T>{
+//        prettyGrid.dataLoader.add(listCallable)
+//        return finalizeGrid(sourceGrid = sourceContainer)
+//    }
+//    @JvmName("finalizeGridCallableRepositoryList")
+//    fun finalizeGrid(listRepository: CallableStorage<S, List<T>>, sourceContainer: PrettyGridBase<S>): PrettyValueGrid<S, T>{
+//        prettyGrid.dataLoader.apply(listRepository)
+//        return finalizeGrid(sourceGrid = sourceContainer)
+//    }
+//    fun finalizeGrid(elementRepository: CallableStorage<S, T>, sourceContainer: PrettyGridBase<S>): PrettyValueGrid<S, T>{
+//        prettyGrid.dataLoader.apply(elementRepository)
+//        return finalizeGrid(sourceGrid = sourceContainer)
+//    }
+    override fun addRow(row: PrettyRow<T>): PrettyRow<T>{
         if(isPreSaved){
             rowsBacking.add(row)
         }else{
@@ -104,5 +109,16 @@ class ValueGridBuilder<T, V>(
         return row
     }
 
-    companion object
+    companion object {
+
+        operator fun <S, T> invoke(
+            property: PropertyCallable<S, List<T>>,
+            gridID: GridID? = null,
+        ): ValueGridBuilder<S, T> {
+            val grid = ValueGridBuilder(property.parameterType, property.resultType.asElementType(), gridID)
+            grid.prettyGrid.dataLoader.apply(property)
+            return grid
+        }
+    }
+
 }

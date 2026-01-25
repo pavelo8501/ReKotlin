@@ -4,8 +4,8 @@ import po.misc.callbacks.FunctionalHelper
 import po.misc.callbacks.common.EventHost
 import po.misc.collections.lambda_list.LambdaWrapper
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.NameValue
 import po.misc.dsl.configurator.data.ConfigurationTracker
+import po.misc.interfaces.named.NameValue
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 

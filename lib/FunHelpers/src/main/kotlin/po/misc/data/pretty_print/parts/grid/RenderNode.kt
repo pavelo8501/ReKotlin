@@ -5,94 +5,133 @@ import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
 import po.misc.data.pretty_print.PrettyValueRow
 import po.misc.data.pretty_print.TemplatePart
+import po.misc.data.pretty_print.parts.common.RenderData
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
-import po.misc.data.strings.appendLine
-import po.misc.types.token.TokenizedResolver
-import po.misc.types.token.TypeToken
+import po.misc.data.pretty_print.parts.rendering.RenderParameters
 
+sealed interface RenderNode<T>{
+
+    val index: Int
+    val key: RenderKey
+    val templateIdText: String
+    val renderableType: RenderableType
+    val enabled: Boolean
+    val element: TemplatePart<*>
+    val size: Int
+    val sourceWidth: Int
+
+    fun renderFromSource(source:T, opts: CommonRowOptions?):String
+    fun scopedRender(source: T): RenderData
+    fun copy(usingOptions: CommonRowOptions? = null): RenderNode<T>
+}
+
+sealed interface SelfContainedNode<T> : RenderNode<T>{
+    fun render(opt: CommonRowOptions? = null): String
+    override fun renderFromSource(source: T, opts: CommonRowOptions?): String {
+        return render(opts)
+    }
+    fun clear()
+}
 
 sealed class RenderNodeBase<T>(
-    val key: RenderKey,
-    val element: TemplatePart<*>
-){
-    abstract val hasRenderPlan: Boolean
-    open val size: Int = 1
-    val order: Int get() = key.order
-    val enabled: Boolean get() = element.enabled
-    val typeName: String get() = "${element.receiverType.typeName},${element.receiverType.typeName}> "
-    val renderableType: RenderableType get() = key.renderableType
-    val templateIdText: String get() = element.templateID.formattedString
-    val nodeInfo: String get() = buildString {
-                appendLine("RenderNode ")
-                appendLine("$templateIdText ")
-                appendLine("$renderableType ")
-            }
+    override val element: TemplatePart<*>,
+    index: Int,
+    override val renderableType: RenderableType,
+): RenderNode<T>{
 
-    abstract fun renderFromSource(source:T, opts: CommonRowOptions?):String
+    override val key: RenderKey = RenderKey(index, renderableType)
+    override val size:Int = 1
+    open  val hasRenderPlan: Boolean = false
+    override val enabled: Boolean get() = element.enabled
+    final override val sourceWidth: Int get() = element.keyParameters.contentWidth
+
+    val typeName: String get() = "${element.receiverType.typeName},${element.receiverType.typeName}> "
+    override val templateIdText: String get() = element.templateID.formattedString
+    val nodeInfo: String get() = buildString {
+        appendLine("RenderNode ")
+        appendLine("$templateIdText ")
+        appendLine("$renderableType ")
+    }
+
+    abstract override fun renderFromSource(source:T, opts: CommonRowOptions?):String
+    abstract override fun scopedRender(source: T): RenderData
 
     override fun toString(): String = nodeInfo
-    abstract fun copy(usingOptions: CommonRowOptions? = null): RenderNodeBase<T>
+    abstract override fun copy(usingOptions: CommonRowOptions? ): RenderNodeBase<T>
     abstract fun clear()
 }
 
 class RowNode<T>(
+    val host: RenderPlan<*, T>,
     val row: PrettyRow<T>,
-    order: Int
-):RenderNodeBase<T>(RenderKey(order, RenderableType.Row), row){
+    override val index: Int
+):RenderNodeBase<T>(row, index, RenderableType.Row), RenderNode<T>, RenderParameters by host {
 
-    override val hasRenderPlan:Boolean = false
-    fun render(receiverList: List<T>, opts: CommonRowOptions? = null): String = row.render(receiverList, opts)
+    init {
+        row.planner.keyParams.index = index
+    }
 
     override fun renderFromSource(source:T, opts: CommonRowOptions?):String = row.render(source, opts)
-    override fun copy(usingOptions: CommonRowOptions? ):RowNode<T>{
-        return RowNode(row.copy(usingOptions), order)
-    }
-    override fun clear(){
-
-    }
-}
-
-class ValueGridNode<T, V>(
-    val valueGrid: PrettyValueGrid<T, V>,
-    order: Int
-):RenderNodeBase<T>(RenderKey(order, RenderableType.ValueGrid), valueGrid){
-    override val hasRenderPlan:Boolean = true
-    override val size: Int get() =  valueGrid.renderPlan.size
-    val renderPlan : RenderPlan<T, V> get() = valueGrid.renderPlan
-
-    override fun renderFromSource(source: T, opts: CommonRowOptions?):String = valueGrid.renderFromSource(source, opts)
-    override fun copy(usingOptions: CommonRowOptions? ):ValueGridNode<T, V>{
-        return ValueGridNode(valueGrid.copy(), order)
-    }
-    override fun clear(): Unit = valueGrid.renderPlan.clear()
+    override fun scopedRender(source: T): RenderData = with(row){ renderInScope(source) }
+    override fun copy(usingOptions: CommonRowOptions? ):RowNode<T> =
+        RowNode(host, row.copy(usingOptions), index)
+    override fun clear(): Unit = row.planner.clear()
 }
 
 class ValueRowNode<T>(
+    val host: RenderPlan<*, T>,
     val valueRow: PrettyValueRow <T, *>,
-    order: Int
-):RenderNodeBase<T>(RenderKey(order, RenderableType.ValueRow), valueRow){
-    override val hasRenderPlan:Boolean = true
-    override fun renderFromSource(source:T, opts: CommonRowOptions?):String = valueRow.renderFromSource(source, opts)
-    override fun copy(usingOptions: CommonRowOptions? ):ValueRowNode<T>{
-        return ValueRowNode(valueRow.copy(), order)
-    }
-    override fun clear(): Unit {
+    override val index: Int
+):RenderNodeBase<T>(valueRow, index, RenderableType.ValueRow), RenderNode<T>, RenderParameters by host {
 
+    init {
+        valueRow.planner.keyParams.index = index
     }
+    override fun renderFromSource(source:T, opts: CommonRowOptions?):String = valueRow.renderFromSource(source, opts)
+    override fun scopedRender(source: T): RenderData = with(valueRow){ renderInScope(source) }
+    override fun copy(usingOptions: CommonRowOptions? ):ValueRowNode<T> =
+        ValueRowNode(host,  valueRow.copy(), index)
+    override fun clear(): Unit = valueRow.planner.clear()
+}
+
+class ValueGridNode<T, V>(
+    val host: RenderPlan<*, T>,
+    val valueGrid: PrettyValueGrid<T, V>,
+    override val index: Int
+):RenderNodeBase<T>(valueGrid,  index , RenderableType.ValueGrid), RenderNode<T>, RenderParameters by host{
+
+    val renderPlan : RenderPlan<T, V> get() = valueGrid.renderPlan
+    override val size:Int get() = renderPlan.size
+    override val hasRenderPlan:Boolean = true
+
+    init {
+        valueGrid.renderPlan.keyParams.index = index
+    }
+
+    override fun renderFromSource(source: T, opts: CommonRowOptions?):String = valueGrid.renderFromSource(source, opts)
+    override fun scopedRender(source: T): RenderData = with(valueGrid){ renderInScope(source) }
+
+    override fun copy(usingOptions: CommonRowOptions? ):ValueGridNode<T, V> =
+        ValueGridNode(host, valueGrid.copy(), index)
+    override fun clear(): Unit = valueGrid.renderPlan.clear()
 }
 
 class PlaceholderNode<T>(
+    val host: RenderPlan<*, *>,
     val placeholder: Placeholder<T>,
-    order: Int
-):RenderNodeBase<T>(RenderKey(order, RenderableType.Placeholder), placeholder){
-    override val hasRenderPlan:Boolean = true
-    override val size: Int get() =  placeholder.renderPlan.size
-    val renderPlan: RenderPlan<T, T> get() = placeholder.renderPlan
+    override val index: Int
+):RenderNodeBase<T>(placeholder, index, RenderableType.Placeholder), SelfContainedNode<T>, RenderParameters by host{
 
-    fun render(opt: CommonRowOptions? = null): String = placeholder.render(opt)
+    val renderPlan: RenderPlan<T, T> get() = placeholder.renderPlan
+    override val size:Int get() = renderPlan.size
+    override val hasRenderPlan:Boolean = true
+
+    override fun render(opt: CommonRowOptions?): String = placeholder.render(opt)
     override fun renderFromSource(source:T, opts: CommonRowOptions?):String = placeholder.renderFromSource(source, opts)
-    override fun copy(usingOptions: CommonRowOptions? ):PlaceholderNode<T>{
-        return  PlaceholderNode(placeholder.copy(), order)
-    }
+    override fun scopedRender(source: T): RenderData = placeholder.renderInScope(this)
+
+    override fun copy(usingOptions: CommonRowOptions? ):PlaceholderNode<T> =
+        PlaceholderNode(host, placeholder.copy(), index)
+
     override fun clear(): Unit = placeholder.renderPlan.clear()
 }

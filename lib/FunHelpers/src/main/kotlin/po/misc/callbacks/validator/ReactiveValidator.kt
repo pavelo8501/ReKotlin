@@ -27,26 +27,21 @@ class ValidityCondition<T>(
     val conditionName:String,
     predicate: (T)-> Boolean
 ): ValidityConditionBase<T>(predicate){
-
     data class ValidationResult<T>(val name:String, val parameter:T, val success : Boolean){
         val validatedAt : Instant = Instant.now()
     }
-
     private var onValidated: ((ValidationResult<T>)-> Unit)? = null
     private var onFailure: ((ValidationResult<T>)-> Unit)? = null
 
     override fun validated(parameter: T){
         onValidated?.invoke(ValidationResult(conditionName, parameter, success = true))
     }
-
     override fun failed(parameter: T) {
         onFailure?.invoke(ValidationResult(conditionName, parameter, success = false))
     }
-
     fun onValidated(callback: (ValidationResult<T>)-> Unit){
         onValidated = callback
     }
-
     fun onFailure(callback: (ValidationResult<T>)-> Unit){
         onFailure = callback
     }
