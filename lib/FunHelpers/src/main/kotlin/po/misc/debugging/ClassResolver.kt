@@ -4,56 +4,85 @@ import po.misc.context.CTX
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.tracable.TraceableContext
+import po.misc.data.text_span.StyledPair
 import po.misc.debugging.models.ClassInfo
+import po.misc.debugging.models.ClassMeta
 import po.misc.debugging.models.InstanceInfo
-import po.misc.exceptions.trace
+import po.misc.debugging.models.InstanceMeta
+import po.misc.exceptions.extractTrace
+import po.misc.interfaces.named.Named
+import po.misc.interfaces.named.NamedComponent
 import po.misc.types.k_class.simpleOrAnon
+import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
 
 interface ClassResolver {
-    companion object {
 
-        fun instanceName(receiver: Any): String {
+    fun classInfo(receiver: Any, typeToken: TypeToken<*>? = null): ClassInfo = Companion.classInfo(receiver, typeToken)
+
+    fun Any.instanceMeta(): InstanceMeta = instanceMeta(this)
+
+    companion object{
+
+        fun instanceMeta(anyInstance: Any?): InstanceMeta{
+            return anyInstance?.let {receiver->
+                val name = when(receiver){
+                    is NamedComponent ->{
+                        receiver.styledName
+                    }
+                    is Named->  StyledPair(receiver.name, receiver.name)
+                    else -> StyledPair(receiver::class.simpleOrAnon)
+                }
+                InstanceMeta(name.plain, receiver.hashCode(), ClassMeta(name.plain, emptyList()))
+            }?:run {
+                InstanceMeta("Null", 0, ClassMeta("Null", emptyList()))
+            }
+        }
+
+
+        fun instanceName(receiver: Any?): String {
             return when (receiver) {
                 is Component -> {
                     val nullableComponentID: ComponentID? =  receiver.componentID as ComponentID?
                     nullableComponentID?.componentName ?:run {
-                        "${receiver::class.simpleOrAnon} #${receiver.hashCode()}"
+                        "${receiver::class.simpleOrAnon} # ${receiver.hashCode()}"
                     }
                 }
                 is CTX -> receiver.identifiedByName
-                else -> "${receiver::class.simpleOrAnon} #${receiver.hashCode()}"
+                else -> {
+                    receiver?.let {
+                        "${it::class.simpleOrAnon} # ${it.hashCode()}"
+                    }?:run {
+                        "Null"
+                    }
+                }
             }
         }
-
         fun instanceInfo(receiver: Any): InstanceInfo {
             val name = instanceName(receiver)
             val classInfo = classInfo(receiver)
            return  InstanceInfo(name,receiver.hashCode(),  classInfo)
         }
-
-        fun classInfo(receiver: Any): ClassInfo {
-            @Suppress("UNCHECKED_CAST")
-              return when(val kClass = receiver::class){
-                is  Function<*> -> classInfo(kClass as KClass<out Function<*>>)
-                else -> classInfo(kClass)
+        fun classInfo(receiver: Any, typeToken: TypeToken<*>? = null): ClassInfo {
+            return when (val kClass = receiver::class) {
+                is Function<*> -> {
+                    ClassInfo(kClass)
+                }
+                else -> ClassInfo(kClass)
             }
         }
-
-        @Suppress("UNCHECKED_CAST")
         fun classInfo(receiver: TraceableContext, resolveTrace: Boolean): ClassInfo{
            val classInfo = when(val kClass = receiver::class){
-                is  Function<*> -> classInfo(kClass as KClass<out Function<*>>)
-                else -> classInfo(kClass)
+                is Function<*> -> ClassInfo(kClass)
+                else -> ClassInfo(kClass)
             }
             if(resolveTrace){
-                val bestPickMeta = receiver.trace().bestPick
+                val bestPickMeta = receiver.extractTrace().bestPick
                 classInfo.addTraceInfo(bestPickMeta)
             }
             return classInfo
         }
-
         fun classInfo(kClass: KClass<out Function<*>>, hashCode: Int? = null): ClassInfo{
             val isSuspended = kClass.supertypes.any { it.toString().contains("Continuation") }
             val hasReceiver = when {
@@ -62,12 +91,7 @@ interface ClassResolver {
             }
             return ClassInfo(kClass, isSuspended, hasReceiver)
         }
-
-        fun  classInfo(kClass: KClass<*>): ClassInfo {
-            return ClassInfo(kClass)
-        }
-
-        fun resolveInstance(context: TraceableContext): InstanceInfo{
+        fun resolveInstance(context: Any): InstanceInfo{
             val name = instanceName(context)
             val classInfo = classInfo(context)
             return InstanceInfo(name, context.hashCode(), classInfo)

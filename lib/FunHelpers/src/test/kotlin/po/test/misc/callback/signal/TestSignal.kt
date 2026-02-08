@@ -10,6 +10,7 @@ import po.misc.data.styles.Colour
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
 import po.misc.functions.NoResult
+import po.misc.functions.Suspended
 import po.misc.functions.SuspendedOptions
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -149,7 +150,7 @@ class TestSignal {
         }
         assertEquals(1, listener1Triggers)
         assertEquals(3, listener2Triggers)
-        assertEquals(1, signal.listeners.size)
+        assertEquals(1, signal.listenersMap.size)
     }
 
     @Test
@@ -165,16 +166,16 @@ class TestSignal {
         }
 
         var listener2Triggers = 0
-        signal.onSignal(listener2, LambdaType.Suspended){
+        signal.onSignal(listener2, Suspended){
             listener2Triggers ++
         }
         repeat(3){
             val data = Data1()
-            signal.trigger(data, LambdaType.Suspended)
+            signal.trigger(data, Suspended)
         }
         assertEquals(1, listener1Triggers)
         assertEquals(3, listener2Triggers)
-        assertEquals(1, signal.listeners.size)
+        assertEquals(1, signal.listenersMap.size)
     }
 
     @Test
@@ -192,8 +193,8 @@ class TestSignal {
         signal.onSignal(listener2, LambdaOptions.Listen){
 
         }
-        val namedPromise = assertNotNull( signal.listeners.values.first { it.options ==   SuspendedOptions.Promise} )
-        val generatedListen = assertNotNull( signal.listeners.values.first { it.options ==  LambdaOptions.Listen } )
+        val namedPromise = assertNotNull( signal.listenersMap.listeners.first { it.options ==   SuspendedOptions.Promise} )
+        val generatedListen = assertNotNull( signal.listenersMap.listeners.first { it.options ==  LambdaOptions.Listen } )
         assertTrue {
             namedPromise.lambdaName.contains(promise.name?:"Failure") &&
             generatedListen.lambdaName.contains("Signal named lambdas")

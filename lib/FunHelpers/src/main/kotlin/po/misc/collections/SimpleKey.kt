@@ -1,16 +1,15 @@
 package po.misc.collections
 
-import po.misc.interfaces.ValueBased
 
 
 class SimpleKey (
     val name: String,
-    val type: ValueBased
+    val type: Int
 ):Comparable<SimpleKey> {
 
 
     val key: String
-        get() = "CompositeKey(${name}:${type.value})"
+        get() = "CompositeKey(${name}:${type})"
 
     override fun toString(): String = key
 
@@ -18,7 +17,7 @@ class SimpleKey (
         if (this === other) return true
         if (other !is SimpleKey) return false
         return key == other.key &&
-                type.value == other.type.value
+                type == other.type
     }
 
     override fun hashCode(): Int {

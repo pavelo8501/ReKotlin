@@ -1,5 +1,9 @@
 package po.misc.debugging.classifier
 
+import po.misc.callbacks.callable.FunctionCallableBase
+import po.misc.callbacks.callable.PropertyCallable
+import po.misc.callbacks.callable.ReceiverCallable
+
 /**
  * Defines a contract for providing a collection of helper-class descriptors.
  *
@@ -26,22 +30,27 @@ interface HelperClassList {
  *
  * Extend or modify this list when new helper components appear in the system.
  */
-object KnownHelpers: HelperClassList{
+object KnownHelpers: HelperClassList {
 
     private val testPackageClassifier: HelperRecord = HelperRecord("TestPackageClassifier", "firstElementAsHelper")
 
     private val traceableContext = HelperRecord("TraceableContext")
     private val component = HelperRecord("Component")
-    private val resolver  = HelperRecord("TraceResolver")
+    private val resolver = HelperRecord("TraceResolver")
     private val stackTracer = HelperRecord("StackTracer")
+    private val callables = listOf(
+        HelperRecord(FunctionCallableBase::class),
+        HelperRecord(ReceiverCallable::class),
+        HelperRecord(PropertyCallable::class)
+    )
 
-    override val classRecords: List<HelperRecord> get() {
-       return listOf(
-           testPackageClassifier,
-           traceableContext,
-           component,
-           stackTracer,
-           resolver
-       )
+    override val classRecords: List<HelperRecord> = buildList {
+        add(testPackageClassifier)
+        add(traceableContext)
+        add(component)
+        add(stackTracer)
+        add(resolver)
+        addAll(callables)
     }
+
 }

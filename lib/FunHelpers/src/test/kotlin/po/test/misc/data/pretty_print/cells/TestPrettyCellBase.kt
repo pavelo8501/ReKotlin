@@ -3,7 +3,7 @@ package po.test.misc.data.pretty_print.cells
 import org.junit.jupiter.api.Test
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.formatters.text_modifiers.DynamicColourModifier
+import po.misc.data.pretty_print.formatters.text_modifiers.ColourCondition
 import po.misc.data.styles.Colour
 import kotlin.test.assertTrue
 
@@ -15,8 +15,8 @@ class TestPrettyCellBase {
         val cell1Text2 = "Cell 2 text"
         val cell1 = StaticCell(cell1Text)
         cell1.colourConditions {
-            addCondition(Colour.Blue) { contains(cell1Text) }
-            addCondition(Colour.Cyan) { contains(cell1Text2) }
+            add(Colour.Blue) { contains(cell1Text) }
+            add(Colour.Cyan) { contains(cell1Text2) }
         }
         val rendered = cell1.render(cell1Text)
         rendered.output()
@@ -34,8 +34,8 @@ class TestPrettyCellBase {
         val cell1 = StaticCell(cell1Text)
 
         cell1.colourConditions(
-            DynamicColourModifier.DynamicColourCondition(Colour.Blue){ contains(cell1Text) },
-            DynamicColourModifier.DynamicColourCondition(Colour.Cyan){ contains(cell1Text2) }
+            ColourCondition(Colour.Blue){ contains(cell1Text) },
+            ColourCondition(Colour.Cyan){ contains(cell1Text2) }
         )
         val rendered = cell1.render(cell1Text)
         rendered.output()

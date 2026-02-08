@@ -2,7 +2,7 @@ package po.misc.data.logging.processor.contracts
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.LoggableTemplate
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.output.output
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.procedural.ProceduralFlow
@@ -74,7 +74,7 @@ class ContextStartsNewNode<T: StructuredLoggable>(
             processLastReceived(data, lastReceived)
             return data
         }else{
-           val warning = notification("processRecord", "Unable to complete processRecord handler not defined", NotificationTopic.Warning)
+           val warning = notification("processRecord", "Unable to complete processRecord handler not defined", Topic.Warning)
            warning.output()
            return null
         }

@@ -1,8 +1,12 @@
 package po.misc.types.helpers
 
 import po.misc.data.output.output
-import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.debugging.stack_tracer.TraceOptions
+import po.misc.debugging.stack_tracer.extractTrace
+import po.misc.exceptions.error
 import po.misc.exceptions.throwableToText
+import po.misc.types.safeCast
+import po.misc.types.token.TokenHolder
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
@@ -53,40 +57,59 @@ inline fun <reified T: Tokenized<T>> Tokenized<*>.safeCast():T? {
         null
     }
 }
+//
+///**
+// * Safely casts this [Tokenized] instance to another parameterized [Tokenized] subtype [T],
+// * verifying that the contained [po.misc.types.token.TypeToken] is compatible with the expected parameter [P].
+// *
+// * @param T The specific [Tokenized] type with parameter type [P].
+// * @param P The parameter type expected by [T].
+// * @param parameter The [KClass] of the parameter type [P] to validate against.
+// * @return The successfully casted instance of type [T], or `null` if the tokenized type
+// *         or parameter type mismatch occurs.
+// *
+// * Example:
+// * ```
+// * val token: Tokenized<*> = DSLParameterGroup<Test, String>(...)
+// * val casted = token.safeCast<DSLParameterGroup<Test, String>, String>(String::class)
+// * requireNotNull(casted) { "Token type mismatch" }
+// * ```
+// */
+//inline fun <reified T: Tokenized<P>, P: Any> Tokenized<*>.safeCast(
+//    parameter: KClass<P>,
+//):T? {
+//
+//    val casted = this.safeCast<T>()
+//    if(casted != null && typeToken == casted.typeToken){
+//        return casted
+//    }
+//    return null
+//}
+//
+//inline fun <reified T: Tokenized<P>, P> Tokenized<*>.safeCast(
+//    typeToken: TypeToken<P>
+//):T? {
+//
+//    val casted = this.safeCast<T>()
+//    if(casted != null && typeToken == casted.typeToken){
+//        return casted
+//    }
+//    return null
+//}
 
-/**
- * Safely casts this [Tokenized] instance to another parameterized [Tokenized] subtype [T],
- * verifying that the contained [po.misc.types.token.TypeToken] is compatible with the expected parameter [P].
- *
- * @param T The specific [Tokenized] type with parameter type [P].
- * @param P The parameter type expected by [T].
- * @param parameter The [KClass] of the parameter type [P] to validate against.
- * @return The successfully casted instance of type [T], or `null` if the tokenized type
- *         or parameter type mismatch occurs.
- *
- * Example:
- * ```
- * val token: Tokenized<*> = DSLParameterGroup<Test, String>(...)
- * val casted = token.safeCast<DSLParameterGroup<Test, String>, String>(String::class)
- * requireNotNull(casted) { "Token type mismatch" }
- * ```
- */
-inline fun <reified T: Tokenized<P>, P: Any> Tokenized<*>.safeCast(
-    parameter: KClass<P>,
-):T? {
-    return try {
-        val baseClass = T::class
-        val casted = baseClass.cast(this)
-        return if(casted.typeToken.partialEquality(parameter)){
-            casted
-        }else{
-            null
-        }
-    }catch (th: Throwable){
-        if (th !is ClassCastException) {
-            th.extractTrace().output()
-            th.throwableToText().output()
-        }
-        null
-    }
-}
+//
+//inline fun <reified T: TokenHolder, P> TokenHolder.safeCast(
+//    typeToken: TypeToken<P>
+//):T?{
+//    val casted = this.safeCast<T>()
+//    if(casted != null && typeToken == casted.typeToken){
+//        return casted
+//    }
+//    return null
+//}
+//
+//
+//
+//
+
+

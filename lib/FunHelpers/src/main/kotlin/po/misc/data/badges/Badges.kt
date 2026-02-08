@@ -1,11 +1,10 @@
 package po.misc.data.badges
 
-import po.misc.data.TextContaining
-import po.misc.data.logging.parts.DebugBadge
 import po.misc.data.logging.parts.LogBadge
 import po.misc.data.styles.BGColour
 import po.misc.data.styles.Colour
 import po.misc.data.styles.Emoji
+import po.misc.interfaces.named.TextContaining
 
 interface Badge {
     val caption: String
@@ -26,6 +25,7 @@ interface Badge {
         fun make(text: String, foreground: Colour, background: BGColour): GenericBadge {
             return GenericBadge(text, foreground, background)
         }
+
         fun make(textContaining: TextContaining, foreground: Colour, background: BGColour): GenericBadge {
             return GenericBadge(textContaining.asText(), foreground, background)
         }

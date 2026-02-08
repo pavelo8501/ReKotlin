@@ -4,13 +4,13 @@ import po.misc.callbacks.FunctionalHelper
 import po.misc.callbacks.common.EventHost
 import po.misc.collections.lambda_list.LambdaWrapper
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.HasNameValue
 import po.misc.dsl.configurator.data.ConfigurationTracker
+import po.misc.interfaces.named.NameValue
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 
 
-internal object Unprioritized: HasNameValue{
+internal object Unprioritized: NameValue{
     override val name: String = "Unprioritized"
     override val value: Int = 0
 }
@@ -30,7 +30,7 @@ internal object Unprioritized: HasNameValue{
  */
 sealed interface DSLConfigurable<T: TraceableContext, P>: Tokenized<P>, EventHost, FunctionalHelper {
     val groupName: String
-    val priority: HasNameValue
+    val priority: NameValue
     val parameterType: TypeToken<P>
     val configurators: List<LambdaWrapper<T, P>>
 
@@ -68,7 +68,7 @@ sealed interface DSLConfigurable<T: TraceableContext, P>: Tokenized<P>, EventHos
  * @param P type of parameter passed to configuration lambdas
  */
 sealed class DSLGroupBase<T: TraceableContext, P>(
-    override val priority: HasNameValue
+    override val priority: NameValue
 ) : DSLConfigurable<T, P>{
     override val groupName: String get() =  priority.name
     //internal val onStartSignal: Signal<ConfigurationTracker<T>, Unit> = signalOf()
@@ -96,7 +96,7 @@ sealed class DSLGroupBase<T: TraceableContext, P>(
 }
 
 class DSLGroup<T: TraceableContext>(
-    priority: HasNameValue,
+    priority: NameValue,
 ):DSLGroupBase<T, Unit>(priority),  DSLConfigurable<T, Unit>{
 
     override val parameterType: TypeToken<Unit> = TypeToken.create()
@@ -125,7 +125,7 @@ class DSLGroup<T: TraceableContext>(
 }
 
 class DSLParameterGroup<T: TraceableContext, P>(
-    priority: HasNameValue,
+    priority: NameValue,
     override val parameterType: TypeToken<P>
 ): DSLGroupBase<T, P>(priority), DSLConfigurable<T, P>{
 

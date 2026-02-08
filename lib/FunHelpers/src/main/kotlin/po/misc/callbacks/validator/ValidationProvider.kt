@@ -1,8 +1,8 @@
 package po.misc.callbacks.validator
 
-import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 
-interface ValidationProvider<T: Any> {
+interface ValidationProvider<T> {
     fun validate(data: T): Boolean
-    suspend fun validate(data: T, suspending: LambdaType.Suspended): Boolean
+    suspend fun validate(data: T, suspending: Suspended): Boolean
 }

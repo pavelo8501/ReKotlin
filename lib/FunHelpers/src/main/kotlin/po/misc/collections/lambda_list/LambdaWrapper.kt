@@ -24,7 +24,7 @@ class LambdaConfigurator<H: Any, T>(
 ):LambdaWrapper<H, T> {
 
     override val isSuspended: Boolean = false
-    override val lambdaName: String = options.name?: lambda::class.lambdaName
+    override var lambdaName: String = lambda::class.lambdaName
 
     override val componentID: ComponentID = componentID({ "Lambda $lambdaName" })
 
@@ -32,6 +32,12 @@ class LambdaConfigurator<H: Any, T>(
         parameterType: TypeToken<T>,
         lambda: H.(T) -> Unit
     ) : this(parameterType, LambdaOptions.Listen, lambda)
+
+    init {
+        if(options is LambdaOptions.NamedListen) {
+            lambdaName = options.name
+        }
+    }
 
     override fun apply(receiver: H, value: T){
         lambda.invoke(receiver, value)

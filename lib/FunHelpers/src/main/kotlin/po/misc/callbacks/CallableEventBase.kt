@@ -5,13 +5,18 @@ import po.misc.callbacks.validator.ReactiveValidator
 import po.misc.callbacks.validator.ValidationProvider
 import po.misc.collections.lambda_map.CallableWrapper
 import po.misc.collections.lambda_map.LambdaMap
+import po.misc.collections.lambda_map.SuspendingLambda
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
+import po.misc.counters.SimpleJournal
+import po.misc.data.helpers.firstCharUppercase
+import po.misc.data.helpers.orDefault
 import po.misc.debugging.ClassResolver
-import po.misc.debugging.stack_tracer.TraceResolver
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 import po.misc.functions.SuspendedOptions
+import po.misc.functions.Sync
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -31,10 +36,22 @@ import kotlin.collections.component2
  *
  * @see po.misc.callbacks.event.HostedEvent
  */
-abstract class CallableEventBase <T: Any, R>(): Component {
+abstract class CallableEventBase<T, T1,  R>(): Component {
 
-    internal val listeners: LambdaMap<T, R> = LambdaMap(this)
-    internal var validator: ReactiveValidator<T>? = null
+    enum class RelayStrategy { COPY, MOVE, FORWARD }
+
+    val journal : SimpleJournal = SimpleJournal("Event journal")
+
+    protected open var eventName:String = "CallableEventBase"
+        set(value) {
+            field = value
+            journal.updateName(value.firstCharUppercase())
+        }
+
+    var listenersMap: LambdaMap<T, T1, R> = LambdaMap(this)
+        internal set
+
+    internal var validator: ReactiveValidator<T1>? = null
 
     protected val subjectKey: String = "Key overwritten"
     protected val subjectInvoke : String = "Lambda Invoked"
@@ -56,15 +73,26 @@ abstract class CallableEventBase <T: Any, R>(): Component {
         }
     }
 
-    protected fun checkRemoval(
-        receiver: TraceableContext,
-        callable: CallableWrapper<T, R>
-    ): TraceableContext? {
+    protected abstract fun listenersApplied(lambdaType: LambdaType)
+
+    protected fun checkRemoval(receiver: TraceableContext, callable: CallableWrapper<T, T1, R>): TraceableContext? {
         return if (callable.options is LambdaOptions.Promise || callable.options is SuspendedOptions.Promise) {
             receiver
         } else {
             null
         }
+    }
+
+    protected fun subscribe(receiver: TraceableContext, callable: CallableWrapper<T, T1, R>, other: CallableEventBase<*, *, *>? = null): TraceableContext? {
+        val existent =  listenersMap.putIfAbsent(receiver, callable)
+        if (existent != null){
+            warn("Signal relay", "Events for subscriber $receiver were overwritten ${other.orDefault{ "by $it" } }")
+        }
+        when(callable){
+            is SuspendingLambda<*, *> ->  listenersApplied(Suspended)
+            else -> listenersApplied(Sync)
+        }
+        return existent
     }
 
     /**
@@ -77,7 +105,7 @@ abstract class CallableEventBase <T: Any, R>(): Component {
      * @see ReactiveValidator
      * @see CallableEventBase.trigger
      */
-    fun registerValidator(validator: ReactiveValidator<T>): ReactiveValidator<T>{
+    fun registerValidator(validator: ReactiveValidator<T1>): ReactiveValidator<T1>{
         this.validator = validator
         return validator
     }
@@ -89,24 +117,24 @@ abstract class CallableEventBase <T: Any, R>(): Component {
      * @return A list of [ListenerResult] containing the listener and their return value
      *
      */
-    fun trigger(value: T): List<ListenerResult<R>> {
+    fun trigger(value: T, parameter: T1): List<ListenerResult<R>> {
         val result = mutableListOf<ListenerResult<R>>()
         val forRemoval = mutableListOf<TraceableContext>()
 
-        if(validator?.validate(value) == false){
+        if(validator?.validate(parameter) == false){
             info(subjectTrigger, failedValidationMsg)
             return emptyList()
         }
-
-        listeners.forEach { (listener, callable) ->
-            val callResult = callable.invoke(value)
+        listenersMap.lambdaMap.forEach { (listener, callable) ->
+            val callResult = callable.call(value, parameter)
             checkRemoval(listener, callable)?.let {
                 forRemoval.add(it)
             }
             result.add(ListenerResult(listener, callResult))
         }
+
         forRemoval.forEach {
-            listeners.remove(it)
+            listenersMap .remove(it)
         }
         return result
     }
@@ -114,99 +142,36 @@ abstract class CallableEventBase <T: Any, R>(): Component {
     /**
      * Triggers the event for a specific listener with the given value.
      *
-     * @param forListener The specific listener to trigger the event for
+     * @param listener The specific listener to trigger the event for
      * @param value The event parameter to pass to the listener
      * @return The result from the listener, or null if the listener doesn't exist or validation fails
      *
      */
-    fun trigger(
-        forListener: TraceableContext,
-        value: T
-    ): R? {
-        if(validator?.validate(value) == false){
+    open fun trigger(listener: TraceableContext, value: T, parameter: T1): R? {
+        if(validator?.validate(parameter) == false){
             info(subjectTrigger, failedValidationMsg)
             return null
         }
-        return listeners[forListener]?.let { callable ->
-            val result = callable.invoke(value)
-            checkRemoval(forListener, callable)?.let {
-                listeners.remove(it)
-            }
-            result
-        }
-    }
-
-    /**
-     * Triggers the event for a specific listener with the given value using suspending execution.
-     *
-     * @param forListener The specific listener to trigger the event for
-     * @param value The event parameter to pass to the listener
-     * @param suspended Marker parameter to indicate suspending execution
-     * @return The result from the listener, or null if the listener doesn't exist or validation fails
-     */
-    suspend fun trigger(
-        forListener: TraceableContext,
-        value: T,
-        suspended: LambdaType.Suspended
-    ): R? {
-        if(validator?.validate(value, suspended) == false){
-            info(subjectTrigger, failedValidationMsg)
-            return null
-        }
-        return listeners[forListener]?.let { callable ->
-            val result = callable.invokeSuspending(value)
-            checkRemoval(forListener, callable)?.let {
-                listeners.remove(it)
-            }
-            result
-        }
-    }
-
-    /**
-     * Triggers the event for all registered listeners with the given value using suspending execution.
-     *
-     * @param value The event parameter to pass to all listeners
-     * @param suspended Marker parameter to indicate suspending execution
-     * @return A list of [ListenerResult] containing the listener and their return value
-     */
-    suspend fun trigger(
-        value: T,
-        suspended: LambdaType.Suspended
-    ): List<ListenerResult<R>> {
-        val result = mutableListOf<ListenerResult<R>>()
-        val forRemoval = mutableListOf<TraceableContext>()
-        if(validator?.validate(value, suspended) == false){
-            info(subjectTrigger, failedValidationMsg)
-            return emptyList()
-        }
-        listeners.forEach { (listener, callable) ->
-            val callResult = callable.invokeSuspending(value)
+        return listenersMap.lambdaMap[listener]?.let { callable ->
+            val result = callable.call(value, parameter)
             checkRemoval(listener, callable)?.let {
-                forRemoval.add(it)
+                listenersMap.removeLambda(it)
             }
-            result.add(ListenerResult(listener, callResult))
+            result
         }
-        forRemoval.forEach {
-            listeners.remove(it)
-        }
-        return result
     }
 
     /**
      * Triggers the event for a specific listener with external validation.
      *
-     * @param forListener The specific listener to trigger the event for
+     * @param listener The specific listener to trigger the event for
      * @param value The event parameter to pass to the listener
      * @param validator External validation provider to validate the event parameter
      * @return The result from the listener, or null if validation fails or listener doesn't exist
      */
-    fun trigger(
-        forListener: TraceableContext,
-        value: T,
-        validator: ValidationProvider<T>
-    ):R?{
+    fun trigger(listener: TraceableContext, value: T,  parameter: T1,  validator: ValidationProvider<T>) : R? {
         if(validator.validate(value)){
-            return trigger(forListener, value)
+            return trigger(listener, value, parameter)
         }
         info(subjectTrigger, failedValidationMsg)
         return null
@@ -219,15 +184,61 @@ abstract class CallableEventBase <T: Any, R>(): Component {
      * @param validator External validation provider to validate the event parameter
      * @return A list of [ListenerResult] containing the listener and their return value
      */
-    fun trigger(
-        value: T,
-        validator: ValidationProvider<T>
-    ):List<ListenerResult<R>>{
+    open fun trigger(value: T,  parameter: T1, validator: ValidationProvider<T>):List<ListenerResult<R>>{
         if(validator.validate(value)){
-            return trigger(value)
+            return trigger(value, parameter)
         }
         info(subjectTrigger, failedValidationMsg)
         return emptyList()
+    }
+
+    /**
+     * Triggers the event for a specific listener with the given value using suspending execution.
+     *
+     * @param listener The specific listener to trigger the event for
+     * @param value The event parameter to pass to the listener
+     * @param suspended Marker parameter to indicate suspending execution
+     * @return The result from the listener, or null if the listener doesn't exist or validation fails
+     */
+    open suspend fun trigger(listener: TraceableContext, value: T,  parameter: T1,  suspended: Suspended): R? {
+        if(validator?.validate(parameter, suspended) == false){
+            info(subjectTrigger, failedValidationMsg)
+            return null
+        }
+        return listenersMap.suspendedMap[listener]?.let { callable ->
+            val result = callable.invoke(value, parameter)
+            checkRemoval(listener, callable)?.let {
+                listenersMap.removeSuspended(it)
+            }
+            result
+        }
+    }
+
+    /**
+     * Triggers the event for all registered listeners with the given value using suspending execution.
+     *
+     * @param value The event parameter to pass to all listeners
+     * @param suspended Marker parameter to indicate suspending execution
+     * @return A list of [ListenerResult] containing the listener and their return value
+     */
+    open suspend fun trigger(value: T,  parameter: T1,  suspended: Suspended): List<ListenerResult<R>> {
+        val result = mutableListOf<ListenerResult<R>>()
+        val forRemoval = mutableListOf<TraceableContext>()
+        if(validator?.validate(parameter, suspended) == false){
+            info(subjectTrigger, failedValidationMsg)
+            return emptyList()
+        }
+        listenersMap.suspendedMap.forEach { (listener, callable) ->
+            val callResult = callable.invoke(value, parameter)
+            checkRemoval(listener, callable)?.let {
+                forRemoval.add(it)
+            }
+            result.add(ListenerResult(listener, callResult))
+        }
+        forRemoval.forEach {
+            listenersMap.removeSuspended(it)
+        }
+        return result
     }
 
     /**
@@ -238,14 +249,9 @@ abstract class CallableEventBase <T: Any, R>(): Component {
      * @param validator External validation provider to validate the event parameter
      * @return A list of [ListenerResult] containing the listener and their return value
      */
-    suspend fun trigger(
-        value: T,
-        suspended: LambdaType.Suspended,
-        validator: ValidationProvider<T>
-    ):List<ListenerResult<R>>{
-
+    open suspend fun trigger(value: T,  parameter: T1, suspended: Suspended, validator: ValidationProvider<T>):List<ListenerResult<R>>{
         if(validator.validate(value, suspended)){
-            return trigger(value, suspended)
+            return trigger(value, parameter, suspended)
         }
         info(subjectTrigger, failedValidationMsg)
         return emptyList()
@@ -254,23 +260,42 @@ abstract class CallableEventBase <T: Any, R>(): Component {
     /**
      * Triggers the event for a specific listener with external validation using suspending execution.
      *
-     * @param forListener The specific listener to trigger the event for
+     * @param listener The specific listener to trigger the event for
      * @param value The event parameter to pass to the listener
      * @param suspended Marker parameter to indicate suspending execution
      * @param validator External validation provider to validate the event parameter
      * @return The result from the listener, or null if validation fails or listener doesn't exist
      */
-    suspend fun trigger(
-        forListener: TraceableContext,
-        value: T,
-        suspended: LambdaType.Suspended,
-        validator: ValidationProvider<T>
-    ):R? {
+    open suspend fun trigger(listener: TraceableContext, value: T, parameter: T1, suspended: Suspended, validator: ValidationProvider<T>) : R? {
         if(validator.validate(value, suspended)){
-            return trigger(forListener, value, suspended)
+            return trigger(listener, value, parameter,  suspended)
         }
         info(subjectTrigger, failedValidationMsg)
         return null
     }
 
+    fun relay(other: CallableEventBase<T, T1,  R>, strategy: RelayStrategy){
+        journal.info("Relaying events to $other. Strategy: $strategy")
+        when(strategy){
+            RelayStrategy.MOVE ->{
+                listenersMap.listenerEntries.forEach {
+                    other.subscribe(it.key, it.value, this)
+                }
+                journal.info("${listenersMap.size} subscribers moved to $other.")
+                listenersMap.clear()
+            }
+            RelayStrategy.FORWARD ->{
+                listenersMap.listenerEntries.forEach {
+                    other.subscribe(it.key, it.value, this)
+                }
+                journal.info("${listenersMap.size} forwarded moved to $other.")
+            }
+            RelayStrategy.COPY ->{
+                listenersMap.listenerEntries.forEach {
+                    other.subscribe(it.key, it.value, this)
+                }
+                journal.info("${listenersMap.size} copied to $other.")
+            }
+        }
+    }
 }

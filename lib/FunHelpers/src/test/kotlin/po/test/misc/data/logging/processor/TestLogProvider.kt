@@ -9,7 +9,7 @@ import po.misc.context.component.componentID
 import po.misc.context.log_provider.LogProvider
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
@@ -27,7 +27,7 @@ import kotlin.test.assertNotNull
 
 class CustomNotification(
     override val context: TraceableContext,
-    override val topic: NotificationTopic,
+    override val topic: Topic,
     override val subject: String,
     override val text: String,
 ): PrintableBase<CustomNotification>(this), StructuredLoggable{
@@ -52,7 +52,7 @@ class TestLogProvider: LogProvider {
 
         val logProcessor = createLogProcessor()
 
-        override fun notify(subject: String, text: String, topic: NotificationTopic): Notification {
+        override fun notify(subject: String, text: String, topic: Topic): Notification {
            val notification = Notification(this,  subject, text, topic)
             logProcessor.logData(notification.toLogMessage())
            return notification
@@ -68,7 +68,7 @@ class TestLogProvider: LogProvider {
 
     private val child1 = SubComponent("child1")
 
-    override fun notify(subject: String, text: String, topic: NotificationTopic):CustomNotification{
+    override fun notify(subject: String, text: String, topic: Topic):CustomNotification{
         val notification = CustomNotification(this, topic, subject, text)
         logProcessor.logData(notification)
         return notification
@@ -89,13 +89,13 @@ class TestLogProvider: LogProvider {
 
         notify(subject, notificationText)
 
-        child1.notify("Some warning", "With text", NotificationTopic.Warning)
+        child1.notify("Some warning", "With text", Topic.Warning)
 
         assertEquals(1, logProcessor.logRecords.size)
         val firstRec = assertNotNull(logProcessor.logRecords.firstOrNull())
         assertEquals(1, firstRec.subNotifications.size)
         val firstSubNotification = assertNotNull(firstRec.subNotifications.firstOrNull())
-        assertEquals(NotificationTopic.Warning, firstSubNotification.topic)
+        assertEquals(Topic.Warning, firstSubNotification.topic)
         assertEquals("Some warning", firstSubNotification.subject)
         assertEquals("With text", firstSubNotification.text)
     }

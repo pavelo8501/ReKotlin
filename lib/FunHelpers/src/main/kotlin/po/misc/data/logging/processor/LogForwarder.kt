@@ -6,7 +6,7 @@ import po.misc.counters.AccessJournal
 import po.misc.data.helpers.orDefault
 import po.misc.data.helpers.replaceIfNull
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.processor.settings.ProcessorConfig
 import po.misc.debugging.ClassResolver
@@ -47,7 +47,7 @@ class LogForwarder(
                 null
             }
             val text = "$text ${ClassResolver.instanceName(existent)} ${newHandlerName.orDefault("") { " by $it"}}"
-            notify(outputImmediately = true, "UseHandler", text, NotificationTopic.Warning)
+            notify(outputImmediately = true, "UseHandler", text, Topic.Warning)
         }
     }
     private fun notifyHandling(text: String, loggable: StructuredLoggable?){
@@ -57,7 +57,7 @@ class LogForwarder(
         }?:run {
             text
         }
-        notify(outputImmediately = true, "Data handling", message, NotificationTopic.Warning)
+        notify(outputImmediately = true, "Data handling", message, Topic.Warning)
     }
 
     private fun resolveAllowOverwrite(allow: Boolean): Boolean{

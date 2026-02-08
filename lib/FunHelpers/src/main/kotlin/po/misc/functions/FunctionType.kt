@@ -1,5 +1,18 @@
 package po.misc.functions
 
+import po.misc.types.token.TypeToken
+import kotlin.reflect.KMutableProperty1
+import kotlin.reflect.KProperty1
+
+
+
+enum class CallableKey { Property, Resolver, Provider }
+
+
+sealed interface CallableType{
+    val callableKey : CallableKey
+}
+
 /**
  * Marker type used to indicate that a signal listener expects a suspending
  * callback function.
@@ -10,11 +23,17 @@ package po.misc.functions
  * Its sole purpose is to disambiguate overloads between regular and
  * suspending listeners.
  */
-sealed interface LambdaType{
-    object Suspended
+sealed interface LambdaType : CallableType{
+    override val callableKey: CallableKey
 }
 
-object Suspending: LambdaType
+object Sync: LambdaType{
+    override val callableKey: CallableKey =  CallableKey.Resolver
+}
+object Suspended: LambdaType{
+    override val callableKey: CallableKey = CallableKey.Resolver
+}
+
 
 
 /**
@@ -67,26 +86,20 @@ sealed interface SuspendedOptions: CallableOptions{
  */
 sealed interface LambdaOptions: CallableOptions{
 
-    val name: String?
-
     /**
      * The listener remains registered after being invoked.
      */
-    object Listen : LambdaOptions{
-        override var name: String? = null
-    }
+    object Listen : LambdaOptions
+    object Promise : LambdaOptions
+
+    open class NamedListen(var name: String) : LambdaOptions
 
     /**
      * The listener is automatically removed after the first successful
      * invocation. Useful for "single-shot" coroutine callbacks.
      */
-    object Promise : LambdaOptions{
-        override var name: String? = null
-        fun applyName(name: String):Promise{
-            this.name = name
-            return this
-        }
-    }
+    open class NamedPromise(var name: String) : LambdaOptions
+
 }
 
 /**
@@ -125,7 +138,9 @@ object Nullable: FunctionResultType
  * Used in DSL overloads where `Unit` should be treated as a separate
  * semantic result category, distinct from nullable or non-nullable values.
  */
-object NoResult: FunctionResultType
+object NoResult: FunctionResultType{
+    val token : TypeToken<Unit> = TypeToken<Unit>()
+}
 
 /**
  * Indicates that a function returns `Nothing`.
@@ -134,3 +149,28 @@ object NoResult: FunctionResultType
  * (e.g., it always throws or suspends forever).
  */
 object NoReturn: FunctionResultType
+
+interface FunctionKind
+object NoParam: FunctionKind{
+    val token : TypeToken<Unit> = TypeToken<Unit>()
+}
+
+
+/**
+ * Represents the kind of Kotlin property being resolved using reflection.
+ *
+ * `ReadOnlyProperty` corresponds to [KProperty1],
+ * `MutableProperty` corresponds to [KMutableProperty1].
+ */
+sealed interface PropertyKind : CallableType{
+
+    object Readonly: PropertyKind{
+        override val callableKey: CallableKey = CallableKey.Property
+    }
+    object Mutable :PropertyKind{
+        override val callableKey: CallableKey =  CallableKey.Property
+    }
+}
+
+
+

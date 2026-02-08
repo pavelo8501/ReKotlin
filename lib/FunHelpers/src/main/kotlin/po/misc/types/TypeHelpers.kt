@@ -1,18 +1,54 @@
 package po.misc.types
 
 import po.misc.context.tracable.TraceableContext
+import po.misc.debugging.stack_tracer.CallSite
+import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
+import po.misc.exceptions.error
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.TypeToken
 import java.time.LocalDateTime
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.isSuperclassOf
 
 
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
     return if (p1 != null) block(p1) else null
 }
+
+inline fun <reified T> T?.requireNotNull():T {
+    if(this == null){
+        val className = T::class.simpleOrAnon
+        val traceOption = CallSite("requireNotNull", beforeThisMethod = true)
+        error<IllegalArgumentException>("$className should not be null", traceOption)
+    }else{
+        return this
+    }
+}
+
+
+@OptIn(ExperimentalContracts::class)
+inline fun <reified T> T?.requireNotNull(lazyMessage: () -> Any):T {
+
+    contract {
+        returns() implies (this@requireNotNull != null)
+    }
+    if(this == null){
+        val className = T::class.simpleOrAnon
+        val message = lazyMessage.invoke()
+        val traceOption = CallSite("requireNotNull", beforeThisMethod = true)
+        error<IllegalArgumentException>(message, traceOption)
+    }else{
+        return this
+    }
+}
+
+
 
 /**
 * Ensures that a nullable receiver is not `null`, otherwise throws a custom exception.
@@ -54,9 +90,6 @@ fun <T: Any> T?.getOrThrow(
     }
 }
 
-
-
-
 fun <T: Any> T?.getOrThrow(
     expectedClass: KClass<*>? = null,
 ):T {
@@ -86,6 +119,15 @@ fun <T: Any> T?.getOrThrow(
 }
 
 
+inline fun <reified T> T?.getOrThrow(
+    failureAction: (String)-> Nothing,
+):T {
+    if(this == null){
+        failureAction.invoke(T::class.simpleOrAnon)
+    }else{
+        return this
+    }
+}
 
 /**
  * Reified overload of [getOrThrow] that infers the expected type automatically.
@@ -136,14 +178,6 @@ inline fun <reified T> T?.getOrManaged(
 ):T = getOrManaged(this,  callingContext, T::class)
 
 
-fun Any?.isNull(): Boolean{
-    return this == null
-}
-
-fun Any?.isNotNull(): Boolean{
-    return this != null
-}
-
 fun <T: Any> TypeToken<T>.getDefaultForType(): T? {
     val result = when (this.kType.classifier) {
         Int::class -> -1
@@ -157,3 +191,12 @@ fun <T: Any> TypeToken<T>.getDefaultForType(): T? {
     }
     return result?.safeCast(this.kClass)
 }
+
+inline fun <reified T> Any?.isSubclassOf():Boolean {
+    if(this == null){
+        return false
+    }
+    val comparedTo = T::class
+    return this::class.isSubclassOf(comparedTo)
+}
+

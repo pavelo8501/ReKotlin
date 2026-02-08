@@ -1,7 +1,9 @@
 package po.misc.debugging.models
 
 import po.misc.data.PrettyPrint
+import po.misc.data.strings.joinToString
 import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.stack_tracer.StackFrameMeta
@@ -11,10 +13,24 @@ import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
 
-data class ClassInfo(
-    internal val kClass: KClass<*>,
+data class ClassMeta(
+    val simpleName: String,
+    val genericParams: List<GenericInfo>,
 ): PrettyPrint{
 
+    private val genericParamText: String get(){
+        if(genericParams.isEmpty()){
+            return SpecialChars.EMPTY
+        }
+        return genericParams.joinToString(prefix = "<", postfix = ">", separator = ", "){ it.formattedString }
+    }
+    override val formattedString: String get() = "${simpleName.colorize(Colour.Yellow)}$genericParamText"
+}
+
+data class ClassInfo(
+    val kClass: KClass<*>,
+    val token:TypeToken<*>? = null,
+): PrettyPrint{
 
     private val genericParamsFormatted: String get() =
         if(genericInfo.isNotEmpty()){
@@ -29,8 +45,6 @@ data class ClassInfo(
                 it.parameterName
             }
         }else { "" }
-
-
 
     internal val genericInfoBacking = mutableListOf<GenericInfo>()
 
@@ -54,6 +68,7 @@ data class ClassInfo(
     val packageName: String = kClass.java.packageName
 
     var functionName : String? = null
+
     val normalizedName : String get() {
        return if(isLambda){
             "${suspendTag}fun $functionName $receiveTag in Package : $packageName"
@@ -61,10 +76,7 @@ data class ClassInfo(
             simpleName
         }
     }
-
-
     val genericInfo: List<GenericInfo> = genericInfoBacking
-
     var stackFrame: StackFrameMeta? = null
 
     constructor(
@@ -79,9 +91,6 @@ data class ClassInfo(
         functionName = parts.getOrNull(1) ?: parts[0]
     }
 
-
-
-    
     val formattedClassName: String = "${simpleName.colorize(Colour.Yellow)}$genericParamsFormatted"
 
     override val formattedString: String get() = formattedClassName
@@ -104,13 +113,11 @@ data class ClassInfo(
     }
 
     fun addParamInfo(typeToken: TypeToken<*>): ClassInfo{
-        val genericsList = typeToken.typeSlots.map { it.genericInfo }
-        genericInfoBacking.addAll(genericsList)
         return this
     }
 
     fun addParamInfo(parameterName: String,  typeToken: TypeToken<*>): GenericInfo{
-        val info = GenericInfo(parameterName, typeToken.kType, ClassResolver.classInfo(typeToken.kClass))
+        val info = GenericInfo(parameterName, typeToken.simpleName,typeToken.isNullable)
         genericInfoBacking.add(info)
         return info
     }

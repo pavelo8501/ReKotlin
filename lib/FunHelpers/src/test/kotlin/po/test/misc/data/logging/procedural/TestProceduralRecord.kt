@@ -20,15 +20,16 @@ class TestProceduralRecord : LogProvider, TokenFactory {
 
     override val logProcessor = createLogProcessor()
 
-    @Test
-     fun `Output produced`() {
 
+    @Test
+    fun `Output produced`() {
         val startProcessSubject = startProcSubject(::`Output produced`)
         val record = ProceduralRecord(startProcessSubject.toLogMessage(this))
         val warning = warning("Some subject", "Warning text")
-        val entry = ProceduralEntry(Badge.Warning, "Step 1", StepResult.Warning(warning.asList()), record)
+        val entry = ProceduralEntry(Badge.Warning, "Step 1", StepResult.Warning(warning.asList()))
         record.proceduralEntries.add(entry)
         record.outputRecord()
-     }
+    }
+
 
 }

@@ -3,7 +3,7 @@ package po.test.misc.data.logging.procedural
 import org.junit.jupiter.api.Test
 import po.misc.context.component.Component
 import po.misc.context.log_provider.LogProvider
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.procedural.ProceduralEntry
@@ -81,7 +81,7 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider{
                 step(nestedStep1Name){}
                 step(nestedStep1Name){}
                 step(nestedStep2Name){
-                    val warning = outerComponent.notification("Warning", nestedStep2Name + "warning", NotificationTopic.Warning)
+                    val warning = outerComponent.notification("Warning", nestedStep2Name + "warning", Topic.Warning)
                     outerComponent.processor.logData(warning.toLogMessage(), noOutput = true)
                 }
            }
@@ -140,7 +140,7 @@ class TestProceduralFlow : LoggerTestBase(), LogProvider{
         }
         assertNotNull( procRec ){record->
             val warningMessage = assertNotNull(record.logRecords.firstOrNull())
-            val registeredWarning = assertNotNull( record.logRecords.firstOrNull { it.topic ==  NotificationTopic.Warning } )
+            val registeredWarning = assertNotNull( record.logRecords.firstOrNull { it.topic ==  Topic.Warning } )
         }
         flow.complete()
     }

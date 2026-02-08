@@ -1,33 +1,13 @@
 package po.misc.data.output
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.strings.FormatedEntry
-import po.misc.data.strings.StringFormatter
 import po.misc.data.strings.stringify
-import po.misc.data.styles.Colorizer
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 
 
-fun List<*>.output(prefix: String = "", colour: Colour? = null){
-    if(prefix.isNotBlank()){
-        if(colour != null){
-            println("$prefix ".colorize(colour))
-        }else{
-            println("$prefix ")
-        }
-    }
-    val result = joinToString(separator = SpecialChars.NEW_LINE) { element ->
-        val formatedEntry : FormatedEntry = StringFormatter.formatKnownTypes2(element).colour(colour)
-        formatedEntry.formatedString
-    }
-    println(result)
-}
-
-fun List<Any>.output(context: TraceableContext, colour: Colour? = null){
-    outputInternal(context = context, receiver =  this, colour =  colour)
-}
 
 fun <T: Any> List<T>.output(
     prefix: String = "",
@@ -37,7 +17,7 @@ fun <T: Any> List<T>.output(
     checkDispatcher()
     if (prefix.isNotBlank()) {
         if (colour != null) {
-            println(Colorizer.colour(prefix, colour))
+            println(TextStyler.ansi.colour(prefix, colour))
         } else {
             println(prefix)
         }
@@ -46,13 +26,13 @@ fun <T: Any> List<T>.output(
         val builder = StringBuilder()
         val result = transform.invoke(builder, entry)
         val resultString = builder.toString()
-        println(resultString.stringify(colour).formatedString)
+        println(resultString.stringify(colour).styled)
     }
 }
 
 fun <T: Any> List<T>.output(
     transform: StringBuilder.(T)-> Any
-): Unit = output(prefix = "", colour = null)
+): Unit = output("", null)
 
 @JvmName("outputTraceableContext")
 fun <T: TraceableContext> List<T>.output(provider: OutputProvider = SyncPrint, outputBuilder:T.()-> String){
@@ -69,6 +49,7 @@ fun <T: TraceableContext> List<T>.output(provider: OutputProvider = SyncPrint, o
                 lines.add(result)
                 println(result)
             }
+            is LocateOutputs -> OutputDispatcher.locateOutputs()
         }
     }
     if(provider == PrintOnComplete){

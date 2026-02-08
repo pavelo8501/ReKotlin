@@ -1,24 +1,38 @@
 package po.misc.data
 
-import po.misc.data.styles.SpecialChars
 
-
-fun String.linesCount(): Int{
-    val thisString = this
-    return  thisString.split(SpecialChars.NEW_LINE).count()
+val String.linesCount: Int get() {
+    return lines().size
 }
 
-fun String.splitLines(): List<String> {
-    val thisString = this
-    val result = thisString.split(SpecialChars.NEW_LINE)
-    return  result
-}
 
-fun String.count(substring: String): Int {
+fun String.substringCount(substring: String): Int {
     val thisString = this
     val splits =  thisString.split(substring)
     val spaces = splits.size - 1
     return  spaces.coerceAtLeast(0)
 }
+
+
+fun String.containsAnyOf(vararg substrings: String): Boolean {
+    for (substring in substrings) {
+        if(substringCount(substring) > 0){
+            return true
+        }
+    }
+    return false
+}
+
+
+fun String.takeLastOrNull(n: Int): String? {
+    val take = length - n.coerceAtMost(length)
+    if(take > length){
+        return null
+    }
+    return substring(take)
+}
+
+
+
 
 

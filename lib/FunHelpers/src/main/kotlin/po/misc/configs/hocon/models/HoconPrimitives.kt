@@ -103,11 +103,9 @@ class HoconString(
     }
 }
 
-
 class HoconInt(
     override val typeToken: TypeToken<Int> = TypeToken.create()
 ): HoconPrimitives<Int>{
-
     override val primitiveClass: IntClass = Companion.primitiveClass
     override val hoconType:  ConfigValueType = Companion.hoconType
 

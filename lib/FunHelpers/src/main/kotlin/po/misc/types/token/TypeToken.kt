@@ -1,22 +1,32 @@
 package po.misc.types.token
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.PrettyPrint
+import po.misc.data.logging.Topic
 import po.misc.data.logging.Verbosity
+import po.misc.data.output.output
+import po.misc.data.strings.appendGroup
+import po.misc.data.strings.appendLine
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
+import po.misc.exceptions.throwableToText
 import po.misc.types.ClassAware
 import po.misc.types.ClassHierarchyMap
+import po.misc.types.TypeHolder
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.k_class.toKeyParams
+import po.misc.types.requireNotNull
 import po.misc.types.safeCast
 import kotlin.collections.forEach
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.KTypeParameter
+import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.typeOf
+import kotlin.toString
 
 
 /**
@@ -70,12 +80,6 @@ import kotlin.reflect.typeOf
  * ### Companion Factory
  * `TypeToken.create<T>()` provides reified creation using compile-time type inference.
  *
- * ### Notes
- * - The [nullable] function returns a new token that reflects nullability in [kType]
- *   but preserves the original non-null [kClass].
- * - Intended for advanced use in reflective frameworks, type registries,
- *   or runtime mappers where erased types must be reconstructed.
- *
  * @param T The reified type being tokenized. Must be non-nullable.
  * @property kClass The runtime [KClass] of the represented type.
  * @property kType The reflective [KType], including generic arguments and nullability.
@@ -89,108 +93,166 @@ import kotlin.reflect.typeOf
  */
 class TypeToken<T>  @PublishedApi internal constructor(
     override val kClass: KClass<T & Any>,
-    val kType: KType,
-    val options:  CreateOptions? = null
-): ClassAware<T>, TraceableContext {
+    override val kType: KType,
+): TypeHolder<T>, TraceableContext, PrettyPrint {
 
+    override val isCollection: Boolean get() = kType.classifier == List::class
+    private val nullabilitySign get() = if (isNullable) "?" else ""
+    private val slotsText: String get() {
+            return if (typeSlots.isNotEmpty()) {
+                typeSlots.joinToString(prefix = "<", postfix = ">", separator = ", ") {
+                    it.toString()
+                }
+            } else {
+                SpecialChars.EMPTY
+            }
+        }
 
-   data class CreateOptions(
-        var scanHierarchyDepth: Int = 0,
-        var scanBeforeClass: KClass<*> = Any::class
-    )
-
-    private val formatedTypeString: String get() {
-        return if(typeSlots.isNotEmpty()){
-            typeSlots.joinToString(prefix = "<", separator = ", ", postfix = ">") {
+    private val slotsFormattedText: String get() =
+        if (typeSlots.isNotEmpty()) {
+            typeSlots.joinToString(prefix = "<", postfix = ">", separator = ", ") {
                 it.formattedString
             }
-        }else{ SpecialChars.EMPTY }
-    }
+        } else {
+            SpecialChars.EMPTY
+        }
 
     var verbosity: Verbosity = Verbosity.Warnings
 
     val isNullable: Boolean get() = kType.isMarkedNullable
-    val typeSlots: List<TypeSlot> = tryResolveImmediately(kClass.typeParameters)
-    val inlinedParameters: List<KClass<*>> = typeSlots.map { it.genericInfo.classInfo.kClass }.sortedBy { simpleName }
+    val typeSlots: List<TypeSlot> = tryResolveImmediately()
+    val inlinedParameters: List<KClass<*>> = typeSlots.mapNotNull { it.kClass }.sortedBy { simpleName }
+    var isElementOfCollection: Boolean = false
 
     val hashCode: Int = kClass.hashCode()
-    val componentName: String get() = "TypeToken[$simpleName]"
-    val simpleName : String get() {
-        return if(isNullable){
-            "${kClass.simpleOrAnon}?"
+
+    val simpleName: String get() = "${kClass.simpleOrAnon}$nullabilitySign"
+
+    private val tokenName: String
+        get() {
+            return if (typeSlots.isNotEmpty()) {
+                "TypeToken of $simpleName$slotsText"
+            } else {
+                "TypeToken of $simpleName"
+            }
+        }
+    private val tokenFormattedName: String
+        get() {
+            return if (typeSlots.isNotEmpty()) {
+                "TypeToken of $simpleName$slotsFormattedText"
+            } else {
+                "TypeToken of $simpleName"
+            }
+        }
+    
+    override val types: List<TypeToken<*>> get() = typeSlots.mapNotNull { it.token }
+
+    override val typeName: String get() = "$simpleName$slotsText"
+    override val formattedString: String
+        get() {
+            return tokenFormattedName
+        }
+
+    val effectiveClass: KClass<*> get() {
+        return if(isCollection){
+            typeSlots.firstOrNull()?.kClass ?:kClass
         }else{
-            kClass.simpleOrAnon
+            kClass
         }
     }
-    val typeName: String get() = simpleName.colorize(Colour.Yellow) + formatedTypeString
 
-    val classHierarchyMap: ClassHierarchyMap = ClassHierarchyMap(kClass, options?.scanHierarchyDepth?:0, options?.scanBeforeClass?: Any::class)
-
-
-    private fun tryResolveImmediately(typeParameters:  List<KTypeParameter>):List<TypeSlot>{
+    private fun tryResolveImmediately(): List<TypeSlot> {
         val result: MutableList<TypeSlot> = mutableListOf()
+        val typeParameters: List<KTypeParameter> = kClass.typeParameters
         kType.arguments.forEachIndexed { index, arg ->
-            val parameter =  typeParameters.getOrNull(index)?: return@forEachIndexed
+            val parameter = typeParameters.getOrNull(index) ?: return@forEachIndexed
+            val hostSlot = TypeSlot(parameter)
             arg.type?.let { argType ->
-                (argType.classifier as? KClass<*>)?.let { klass ->
-                    val genericParam = GenericInfo(parameter.name, argType,  ClassResolver.classInfo(klass))
-                    val typeSlot = TypeSlot(genericParam, parameter)
-                    result.add(typeSlot)
+                when (val classifier = argType.classifier) {
+                    is KClass<*> ->{
+                        val token =  TypeToken(classifier, argType)
+                        if(isCollection){
+                            token.isElementOfCollection = true
+                        }
+                        hostSlot.resolve(token)
+                    }
+                    is KTypeParameter ->{
+                       val typeSlot = TypeSlot(classifier)
+                       result.add(typeSlot)
+                    }
                 }
             }
+            result.add(hostSlot)
         }
         return result
     }
 
-    private fun warnKClassDifferent(other: KClass<*>, methodName: String){
-        val line1 = kClass.toKeyParams()
-        val line2 = other.toKeyParams()
-        val warnMsg = "Comparison failed when comparing own"+ SpecialChars.NEW_LINE + "$line1 to " + "$line2"
-        notify(warnMsg, methodName, NotificationTopic.Warning)
+
+
+    fun effectiveClassIs(other: KClass<*>): Boolean {
+       return if(isCollection){
+            typeSlots.firstOrNull()?.let {
+                it.kClass == other
+            }?:false
+        }else{
+            equals(other)
+        }
     }
 
-    override fun hashCode(): Int = kClass.hashCode()
+    fun effectiveClassIs(otherToken: TypeToken<*>): Boolean {
+       val result = this.effectiveClass == otherToken.effectiveClass
+       return result
+    }
 
-    override fun equals(other: Any?): Boolean {
-        if(other != null){
-            var result : Boolean = false
+    fun compareEffectiveClass(otherToken: TypeToken<*>):Boolean {
 
-            when(other){
-                is TypeToken<*>->{
-                    return kClass == other.kClass && inlinedParameters == other.inlinedParameters
-                }
-                is KClass<*>->{
-                    result = kClass == other
-                    if(!result){
-                        warnKClassDifferent(other, "equals")
-                    }
-                }
-                else -> false
+        if(isCollection){
+            if(effectiveClass == otherToken.effectiveClass){
+                return true
             }
-            return result
+        }
+        if(otherToken.isCollection){
+            if(otherToken.effectiveClass == kClass){
+                return true
+            }
         }
         return false
     }
 
-    private fun makeStrictEquality(otherClass: KClass<*>, parameters: List<Pair<KClass<*>, Boolean?>>): Boolean{
-        if (kClass != otherClass){
-            warnKClassDifferent(otherClass, "stricterEquality")
+    override fun hashCode(): Int =  kType.hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        if (other != null) {
+            return when (other) {
+                is TypeToken<*> -> kType == other.kType
+                is KClass<*> -> kClass == other
+                else -> false
+            }
+        }
+        return false
+    }
+
+    private fun makeStrictEquality(otherClass: KClass<*>, parameters: List<Pair<KClass<*>, Boolean?>>): Boolean {
+        if (kClass != otherClass) {
             return false
         }
-        if(typeSlots.size != parameters.size){
+        if (typeSlots.size != parameters.size) {
             return false
         }
-        for (slot in typeSlots){
-            parameters.firstOrNull{  it ==  slot.kClass}?.let {
-                if(it.second != null &&  slot.isMarkedNullable != it.second){
-                    return false
-                }
-            }?:run {
+        val classList  = typeSlots.mapNotNull { it.kClass }
+        parameters.forEach {
+            if( it.first !in classList){
                 return false
             }
         }
         return true
     }
+
+    private fun slotsContainClass(otherClass: KClass<*>): Boolean {
+       return typeSlots.any { it.kClass == otherClass }
+    }
+
+
 
     /**
      * Performs a strict equality check between this [TypeToken] and another type.
@@ -219,7 +281,7 @@ class TypeToken<T>  @PublishedApi internal constructor(
      * @param other another [TypeToken] or [KClass] to compare against
      * @return `true` if both type and generic arguments (including nullability, when available) match
      */
-    fun strictEquality(other: KClass<*>, vararg typeParameters:KClass<*>): Boolean =
+    fun strictEquality(other: KClass<*>, vararg typeParameters: KClass<*>): Boolean =
         makeStrictEquality(other, typeParameters.toList().map { Pair(it, null) })
 
     /**
@@ -249,7 +311,8 @@ class TypeToken<T>  @PublishedApi internal constructor(
      * @param other another [TypeToken] or [KClass] to compare against
      * @return `true` if both type and generic arguments (including nullability, when available) match
      */
-    fun strictEquality(other: TypeToken<*>): Boolean = makeStrictEquality(other.kClass, other.typeSlots.map { it.toComparePair() })
+    fun strictEquality(other: TypeToken<*>): Boolean =
+        makeStrictEquality(other.kClass, other.typeSlots.mapNotNull { it.toComparePair() })
 
     /**
      * Compares this [TypeToken] to a given base type [baseClass] and its type arguments,
@@ -271,11 +334,11 @@ class TypeToken<T>  @PublishedApi internal constructor(
      * assertTrue(matches) // ✅
      * ```
      */
-    fun partialEquality(baseClass: KClass<out T & Any>,  vararg parameter: KClass<*>): Boolean{
-        if(this == baseClass){
+    fun partialEquality(baseClass: KClass<out T & Any>, vararg parameter: KClass<*>): Boolean {
+        if (this == baseClass) {
             val testAgainst = parameter.toList()
             testAgainst.forEach {
-                if(it !in inlinedParameters){
+                if (it !in inlinedParameters) {
                     return false
                 }
             }
@@ -284,84 +347,61 @@ class TypeToken<T>  @PublishedApi internal constructor(
         return false
     }
 
+    fun partialEquality(token: TypeToken<*>): Boolean = slotsContainClass(token.kClass) || this == token
 
-    fun equality(baseClass: KClass<T & Any>, vararg parameter: KClass<*>): Boolean{
-        if(this == baseClass){
+    fun typeSlotMatch(litera: TypeLitera, kClass: KClass<*>): Boolean {
+        return typeSlots.firstOrNull { it.typeLitera == litera }?.let {
+            it.kClass == kClass
+        } ?: false
+    }
+
+    fun equality(baseClass: KClass<T & Any>, vararg parameter: KClass<*>): Boolean {
+        if (this == baseClass) {
             val testAgainst = parameter.toList()
             testAgainst.forEach {
-                if(it !in inlinedParameters){
+                if (it !in inlinedParameters) {
                     return false
                 }
             }
             return true
         }
         return false
-    }
-
-    fun printSlots(){
-        typeSlots.joinToString(prefix = "[", postfix = "]", separator = ", ") {
-            it.toString()
-        }
     }
 
     override fun toString(): String {
         return buildString {
-            appendLine("SimpleName:$simpleName")
-            appendLine("TypeName: $typeName")
-            appendLine("Hash Code: $hashCode")
-            appendLine("Nullable: $isNullable")
-            appendLine("TypeSlots : ${typeSlots.size} "+ printSlots())
+            appendGroup("$tokenName [", "", ::hashCode, ::isNullable)
+            append(" TypeSlots count : ${typeSlots.size} ]")
         }
     }
 
-    companion object{
+    companion object {
+        val errMsg: (KClass<*>) -> String = {
+            "Impossible to create token for type ${it.simpleName}. KClass<T> should be non nullable"
+        }
 
-        inline fun <reified T> create(options:  CreateOptions? = null):TypeToken<T>{
+        inline operator fun <reified T> invoke(tokenOptions: TokenOptions? = null): TypeToken<T> {
             val casted = T::class.safeCast<KClass<T & Any>>()
-            if(casted != null){
-                return  TypeToken(casted,  typeOf<T>(), options = options)
-            }else{
-                val errMsg = "Impossible to create token for type ${T::class.simpleName}. KClass<T> should be non nullable"
-                throw IllegalArgumentException(errMsg)
-            }
+            requireNotNull(casted) { errMsg(T::class) }
+            val kType = typeOf<T>()
+            return TypeToken(casted, kType)
         }
 
-        inline fun <T, reified GT: T?> create(baseClass: KClass<T & Any>, options:  CreateOptions? = null): TypeToken<T>{
-            return  TypeToken(baseClass, typeOf<GT>(), options = options)
+        inline fun <reified T> create(options: TokenOptions? = null): TypeToken<T> {
+            val casted = T::class.safeCast<KClass<T & Any>>()
+            requireNotNull(casted) { errMsg(T::class) }
+            val kType = typeOf<T>()
+            return TypeToken(casted, kType)
+        }
+
+        inline fun <T, reified GT : T?> create(
+            baseClass: KClass<T & Any>,
+            options: TokenOptions? = null
+        ): TypeToken<T> {
+            val casted = GT::class.safeCast<KClass<T & Any>>()
+            requireNotNull(casted) { errMsg(GT::class) }
+            val kType = typeOf<GT>()
+            return TypeToken(casted, kType)
         }
     }
 }
-
-/**
- * Creates a new [TypeToken] instance representing a nullable version of the current type.
- *
- * The resulting token preserves the same non-nullable [kClass] identity but updates
- * its [KType] metadata to reflect nullability. This makes it safe to use in
- * casting, logging, or reflection scenarios where nullable and non-nullable
- * types must be distinguished.
- *
- * Example:
- * ```kotlin
- * val stringToken = TypeToken.create<String>()
- * val nullableStringToken = stringToken.nullable<String?>()
- *
- * println(nullableStringToken.isNullable) // true
- * ```
- *
- * @param NT A nullable type bound by the base [T].
- * @return A new [TypeToken] representing a nullable variant of this type.
- */
-inline fun <T: Any, reified NT : T?> TypeToken<T>.nullable():TypeToken<T>{
-    return TypeToken(kClass, typeOf<NT>())
-}
-
-
-infix  fun List<KClass<*>>.typeClassesAlign(typeToken : TypeToken<*>): Boolean{
-    val thisSorted = sortedBy { it.simpleName }
-    val typeTokenClasses = typeToken.inlinedParameters
-
-    return thisSorted == typeTokenClasses
-}
-
-infix fun TokenHolder.sameBaseClass(other: TokenHolder): Boolean =
-    this.typeToken.kClass == other.typeToken.kClass

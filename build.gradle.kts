@@ -2,7 +2,7 @@
 val rekotlin : String by project
 
 plugins {
-    kotlin("jvm") version "2.2.20"
+    kotlin("jvm") version "2.3.0"
     id("com.google.devtools.ksp")
     id("maven-publish")
     signing
@@ -26,7 +26,6 @@ allprojects {
 }
 
 subprojects {
-    //apply(plugin = "io.gitlab.arturbosch.detekt")
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "com.google.devtools.ksp")
     apply(plugin = "maven-publish")

@@ -6,7 +6,7 @@ import po.misc.callbacks.signal.signalOf
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.processor.LogForwarder
@@ -27,7 +27,7 @@ class TestLogForwarder : Component {
     class MockRecord(loggable: Loggable): MockLoggable {
 
         override val context: TraceableContext = loggable.context
-        override  val topic: NotificationTopic = loggable.topic
+        override  val topic: Topic = loggable.topic
         override val subject: String = loggable.subject
         override val text: String = loggable.text
         override val created: Instant = Instant.now()

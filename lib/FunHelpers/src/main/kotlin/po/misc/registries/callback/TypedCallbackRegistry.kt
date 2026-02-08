@@ -2,8 +2,7 @@ package po.misc.registries.callback
 
 import po.misc.collections.CompositeKey
 import po.misc.context.CTX
-import po.misc.context.Identifiable
-import po.misc.interfaces.ValueBased
+import po.misc.interfaces.named.NameValue
 
 
 abstract class TypedCallback<T, R>(){
@@ -14,14 +13,14 @@ open class TypedCallbackRegistry<T, R>(){
 
     class Callback<T, R>(override val callback : (T)-> R):TypedCallback<T, R>()
     private val subscriptions = mutableMapOf<CompositeKey, TypedCallback<T, R>>()
-    val unTriggered= mutableMapOf<ValueBased, T>()
+    val unTriggered= mutableMapOf<NameValue, T>()
 
-    var onNewSubscription: ((ValueBased, CTX)-> Unit)? = null
+    var onNewSubscription: ((NameValue, CTX)-> Unit)? = null
     var onKeyOverwrite: ((key: String, CTX)-> Unit)? = null
-    var onBeforeTrigger: ((ValueBased, CTX, T)-> Unit)? = null
+    var onBeforeTrigger: ((NameValue, CTX, T)-> Unit)? = null
     var onAfterTriggered: ((triggerCount:Int)-> Unit)? = null
 
-    fun subscribe(component: CTX, type: ValueBased,  callback : (T)-> R) {
+    fun subscribe(component: CTX, type: NameValue,  callback : (T)-> R) {
 
         onNewSubscription?.invoke(type, component)
 
@@ -39,7 +38,7 @@ open class TypedCallbackRegistry<T, R>(){
         }
     }
 
-    fun triggerForAll(type: ValueBased, value:T) {
+    fun triggerForAll(type: NameValue, value:T) {
         var triggersCount = 0
         subscriptions.filter { keyValue -> keyValue.key.type.value == type.value }
             .forEach {entry->
@@ -53,7 +52,7 @@ open class TypedCallbackRegistry<T, R>(){
         onAfterTriggered?.invoke(triggersCount)
     }
 
-    fun trigger(component: CTX, type: ValueBased, value:T) {
+    fun trigger(component: CTX, type: NameValue, value:T) {
         val key = CompositeKey(component, type)
         subscriptions[key]?.let { callbackContainer->
             onBeforeTrigger?.invoke(key.type, key.component, value)
@@ -65,10 +64,10 @@ open class TypedCallbackRegistry<T, R>(){
         }
     }
 
-    fun hasSubscribersFor(type: ValueBased): Boolean =
+    fun hasSubscribersFor(type: NameValue): Boolean =
         subscriptions.keys.any { it.type == type }
 
-    fun clear(component: CTX? = null, type: ValueBased? = null) {
+    fun clear(component: CTX? = null, type: NameValue? = null) {
         when {
             component != null && type != null -> subscriptions.remove(CompositeKey(component, type))
             component != null -> subscriptions.keys.removeIf { it.component == component }

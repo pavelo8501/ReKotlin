@@ -3,13 +3,12 @@ package po.test.misc.reflection
 import org.junit.jupiter.api.Test
 import po.misc.context.CTX
 import po.misc.context.CTXIdentity
-import po.misc.context.Identifiable
 import po.misc.context.asIdentity
-import po.misc.interfaces.ValueBased
+import po.misc.interfaces.named.NameValue
 
 class TestPropertyMapper {
 
-    enum class ID(override val value : Int): ValueBased{
+    enum class ID(override val value : Int): NameValue{
         CLASS_1(1)
     }
 

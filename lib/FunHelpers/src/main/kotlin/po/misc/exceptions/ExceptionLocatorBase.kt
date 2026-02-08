@@ -2,9 +2,8 @@ package po.misc.exceptions
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.handling.ThrowableRegistry
-import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.stack_trace.extractTrace
-import po.misc.exceptions.trackable.TrackableException
+import po.misc.debugging.stack_tracer.ExceptionTrace
+import po.misc.debugging.stack_tracer.extractTrace
 import kotlin.reflect.KClass
 
 data class HelperPackage(
@@ -37,7 +36,7 @@ abstract class ExceptionLocatorBase{
 
     inline fun <reified TH> registerExceptionBuilder(
        noinline provider: (String)-> TH
-    ) where  TH: Throwable, TH: TrackableException {
+    ) where  TH: Throwable, TH: TraceException {
         exceptionBuilderRegistry[TH::class] = provider
     }
 
@@ -50,7 +49,7 @@ abstract class ExceptionLocatorBase{
     ): ExceptionTrace {
 
         val managed =  ManagedException(context = context, message = message)
-        val trace =  register(managed.exceptionTrace)
+        val trace =  register(managed.trace)
         traceProvider?.invoke(trace)
         throw managed
     }
@@ -58,12 +57,12 @@ abstract class ExceptionLocatorBase{
     inline fun <reified TH> raiseException(
         context: TraceableContext,
         message: String,
-    ): ExceptionTrace  where  TH: Throwable, TH: TrackableException {
+    ): ExceptionTrace  where  TH: Throwable, TH: TraceException {
         val exception = exceptionBuilderRegistry[TH::class]?.invoke(message) ?:run {
             ManagedException(context = context, message = message)
         }
        when(exception){
-            is TrackableException ->  register(exception.exceptionTrace)
+            is TraceException ->  register(exception.trace)
             is Throwable ->  exception.extractTrace()
         }
         throw exception
@@ -73,14 +72,14 @@ abstract class ExceptionLocatorBase{
         context: TraceableContext,
         message: String,
         crossinline traceProvider: (ExceptionTrace)-> Unit
-    ): ExceptionTrace  where  TH: Throwable, TH: TrackableException {
+    ): ExceptionTrace  where  TH: Throwable, TH: TraceException {
 
         val exception = exceptionBuilderRegistry[TH::class]?.invoke(message) ?:run {
             ManagedException(context = context, message = message)
         }
 
         val trace =  when(exception){
-            is TrackableException ->  register(exception.exceptionTrace)
+            is TraceException ->  register(exception.trace)
             is Throwable ->  exception.extractTrace()
         }
         traceProvider.invoke(trace)

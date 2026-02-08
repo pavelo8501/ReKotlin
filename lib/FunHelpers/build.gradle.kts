@@ -15,7 +15,6 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization") version "1.9.22"
     `maven-publish`
-    signing
 }
 
 group = "io.github.pavelo8501"
@@ -45,6 +44,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinReflectVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
     implementation("com.typesafe:config:$typesafeVersion")
+    implementation("org.junit.jupiter:junit-jupiter:$junitVersion")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion")
@@ -60,85 +60,16 @@ kotlin {
     }
 }
 
-//publishing {
-//    publications {
-//        create<MavenPublication>("mavenJava") {
-//            from(components["java"]) // This publishes the main Java/Kotlin component
-//            groupId = "po.misc"
-//            artifactId = "funhelpers"
-//            version = funHelpersVersion
-//        }
-//    }
-//}
-
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
-            groupId = "io.github.pavelo8501"
+            from(components["java"]) // This publishes the main Java/Kotlin component
+            groupId = "po.misc"
             artifactId = "funhelpers"
             version = funHelpersVersion
-
-            from(components["java"])
-
-            pom {
-                name.set("FunHelpers")
-                description.set("Your library description")
-                url.set("https://github.com/pavelo8501/ReKotlin")
-
-                licenses {
-                    license {
-                        name.set("The MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("pavelo8501")
-                        name.set("Pavel Olshansky")
-                        email.set("pavelo8501@gmail.com")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:git://github.com/pavelo8501/ReKotlin.git")
-                    developerConnection.set("git@github.com:pavelo8501/ReKotlin.git")
-                    url.set("https://github.com/pavelo8501/ReKotlin")
-                }
-
-            }
-        }
-    }
-    repositories {
-        maven {
-            name = "sonatype"
-            // S01
-            setUrl("https://central.sonatype.com/api/v1/publisher/maven/releases")
-            credentials {
-                username = project.findProperty("sonatypeUsername")?.toString() ?: ""
-                password = project.findProperty("sonatypeUsername")?.toString() ?: ""
-            }
         }
     }
 }
-
-signing {
-    val gpgExe = File("C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe")
-    if (gpgExe.exists()) {
-        useGpgCmd()
-    } else {
-        println("GPG not found at: $gpgExe")
-        val signingKeyId: String? by project
-        val signingKey: String? by project
-        val signingPassword: String? by project
-
-        if (signingKey != null && signingKeyId != null) {
-            useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
-        }
-        useGpgCmd()
-        sign(publishing.publications["mavenJava"])
-    }
-}
-
-
 
 tasks.withType<Javadoc> {
     isFailOnError = false

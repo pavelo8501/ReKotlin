@@ -7,7 +7,6 @@ import po.misc.context.component.configSubject
 import po.misc.context.component.initSubject
 import po.misc.context.log_provider.LogProvider
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.HasNameValue
 import po.misc.data.logging.log_subject.startProcSubject
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.processor.LogProcessor
@@ -16,6 +15,7 @@ import po.misc.debugging.ClassResolver
 import po.misc.dsl.configurator.data.ConfigurationTracker
 import po.misc.dsl.configurator.data.ConfiguratorInfo
 import po.misc.functions.Throwing
+import po.misc.interfaces.named.NameValue
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import po.misc.types.token.TokenFactory
@@ -37,7 +37,7 @@ class DSLConfigurator<T: TraceableContext>(
     groups: Collection<DSLConfigurable<T, *>>
 ): LogProvider,  TokenFactory {
 
-    constructor(vararg priorities: HasNameValue) : this(priorities.map { DSLGroup<T>(it) })
+    constructor(vararg priorities: NameValue) : this(priorities.map { DSLGroup<T>(it) })
 
     override val componentID: ComponentID = componentID()
 
@@ -50,7 +50,7 @@ class DSLConfigurator<T: TraceableContext>(
     internal val dslGroups: MutableMap<Int, DSLConfigurable<T, *>> = mutableMapOf()
 
     @PublishedApi
-    internal val wrongParameter: HasNameValue.(KClass<*>, TypeToken<*>) -> String = { received, expected ->
+    internal val wrongParameter: NameValue.(KClass<*>, TypeToken<*>) -> String = { received, expected ->
         "Wrong configuration provided." +
                 "DSLGroup is expecting parameter of type ${expected.typeName} DSL for priority $name # $value" +
                 "Got ${received.simpleOrAnon}"
@@ -87,11 +87,11 @@ class DSLConfigurator<T: TraceableContext>(
         configurationStep.onSignal(callback)
     }
 
-    fun groupSize(priority: HasNameValue): Int {
+    fun groupSize(priority: NameValue): Int {
         return dslGroups[priority.value]?.configurators?.size ?: 0
     }
 
-    fun addConfigurator(priority: HasNameValue, block: T.() -> Unit) {
+    fun addConfigurator(priority: NameValue, block: T.() -> Unit) {
         dslGroups[priority.value]?.let {
             if (it is DSLGroup) {
                 it.addConfigurator(block = { block.invoke(this) })
@@ -105,7 +105,7 @@ class DSLConfigurator<T: TraceableContext>(
         }
     }
 
-    fun createGroup(priority: HasNameValue): DSLGroup<T> {
+    fun createGroup(priority: NameValue): DSLGroup<T> {
         val group = DSLGroup<T>(priority)
         dslGroups[priority.value] = group
         return group
@@ -113,7 +113,7 @@ class DSLConfigurator<T: TraceableContext>(
 
     fun <P> createGroup(
         parameterType: TypeToken<P>,
-        priority: HasNameValue,
+        priority: NameValue,
     ): DSLParameterGroup<T, P> {
         val group = DSLParameterGroup<T, P>(priority, parameterType)
         dslGroups[priority.value] = group
@@ -128,7 +128,7 @@ class DSLConfigurator<T: TraceableContext>(
      * @return The configured DSLGroup instance
      *
      */
-    fun buildGroup(priority: HasNameValue, block: DSLGroup<T>.() -> Unit): DSLGroup<T> {
+    fun buildGroup(priority: NameValue, block: DSLGroup<T>.() -> Unit): DSLGroup<T> {
         val group = createGroup(priority)
         block.invoke(group)
         return group
@@ -144,7 +144,7 @@ class DSLConfigurator<T: TraceableContext>(
      */
     fun <P> buildGroup(
         parameterType: TypeToken<P>,
-        priority: HasNameValue,
+        priority: NameValue,
         block: DSLParameterGroup<T, P>.() -> Unit
     ): DSLParameterGroup<T, P> {
         val group = createGroup(parameterType, priority)
@@ -161,7 +161,7 @@ class DSLConfigurator<T: TraceableContext>(
      * @return The configured DSLParameterGroup instance
      */
     inline fun <reified P> buildGroup(
-        priority: HasNameValue,
+        priority: NameValue,
         noinline block: DSLParameterGroup<T, P>.() -> Unit
     ): DSLParameterGroup<T, P> = buildGroup(TypeToken.create<P>(), priority, block)
 
@@ -199,7 +199,7 @@ class DSLConfigurator<T: TraceableContext>(
      */
     inline fun <reified P> buildGroup(
         dslParameterGroup: DSLParameterGroup.Companion,
-        priority: HasNameValue,
+        priority: NameValue,
         noinline block: DSLParameterGroup<T, P>.() -> Unit
     ): DSLParameterGroup<T, P> = buildGroup(TypeToken.create<P>(), priority, block)
 
@@ -245,7 +245,7 @@ class DSLConfigurator<T: TraceableContext>(
     internal fun <P> runGroupConfig(
         receiver: T,
         parameter: P,
-        priority: HasNameValue,
+        priority: NameValue,
         singleLaunch: Boolean
     ): Throwable? {
         try {
@@ -278,7 +278,7 @@ class DSLConfigurator<T: TraceableContext>(
      * @return `true` if configuration completed successfully, or `false` if the
      *         priority-group configuration produced an exception.
      */
-    fun applyConfig(receiver: T, priority: HasNameValue): Boolean {
+    fun applyConfig(receiver: T, priority: NameValue): Boolean {
         runGroupConfig(receiver, Unit, priority, singleLaunch = true) ?: return true
         return false
     }
@@ -297,7 +297,7 @@ class DSLConfigurator<T: TraceableContext>(
      *
      * @throws Throwable If the priority-based configuration fails.
      */
-    fun applyConfig(receiver: T, priority: HasNameValue, throwing: Throwing) {
+    fun applyConfig(receiver: T, priority: NameValue, throwing: Throwing) {
         runGroupConfig(receiver, Unit, priority, singleLaunch = true)?.let {
             throw it
         }
@@ -385,7 +385,7 @@ class DSLConfigurator<T: TraceableContext>(
      * @return `true` if the priority-group configuration completed successfully,
      *         or `false` if it produced an exception.
      */
-    fun <P> applyConfig(receiver: T, parameter: P, priority: HasNameValue): Boolean {
+    fun <P> applyConfig(receiver: T, parameter: P, priority: NameValue): Boolean {
         runGroupConfig(receiver, parameter, priority, singleLaunch = true) ?: return true
         return false
     }
@@ -404,7 +404,7 @@ class DSLConfigurator<T: TraceableContext>(
      *
      * @throws Throwable If the selected DSL group fails.
      */
-    fun <P> applyConfig(receiver: T, parameter: P, priority: HasNameValue, throwing: Throwing) {
+    fun <P> applyConfig(receiver: T, parameter: P, priority: NameValue, throwing: Throwing) {
         runGroupConfig(receiver, parameter, priority, singleLaunch = true)?.let {
             throw it
         }
@@ -416,7 +416,7 @@ class DSLConfigurator<T: TraceableContext>(
     }
 
     companion object {
-        inline operator fun <T : TraceableContext, reified E> invoke(): DSLConfigurator<T> where E : HasNameValue, E : Enum<E> {
+        inline operator fun <T : TraceableContext, reified E> invoke(): DSLConfigurator<T> where E : NameValue, E : Enum<E> {
             val groups = enumEntries<E>().map {
                 DSLGroup<T>(it)
             }

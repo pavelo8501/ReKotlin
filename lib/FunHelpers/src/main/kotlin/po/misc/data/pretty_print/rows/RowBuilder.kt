@@ -1,100 +1,239 @@
 package po.misc.data.pretty_print.rows
 
-import po.misc.collections.indexed.IndexedList
-import po.misc.collections.indexed.indexedListOf
-import po.misc.data.pretty_print.RenderableElement
-import po.misc.data.pretty_print.parts.RowOptions
-import po.misc.data.pretty_print.parts.RowPresets
+import po.misc.callbacks.callable.CallableCollection
+import po.misc.callbacks.callable.ReceiverCallable
+import po.misc.callbacks.signal.Signal
+import po.misc.callbacks.signal.signalOf
+import po.misc.callbacks.validator.ValidityCondition
+import po.misc.context.tracable.TraceableContext
+import po.misc.data.pretty_print.PrettyRow
+import po.misc.data.pretty_print.PrettyRowBase
+import po.misc.data.pretty_print.PrettyValueRow
+import po.misc.data.pretty_print.cells.ComputedCell
+import po.misc.data.pretty_print.cells.KeyedCell
+import po.misc.data.pretty_print.cells.PrettyCell
+import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.cells.RenderableCell
+import po.misc.data.pretty_print.cells.StaticCell
+import po.misc.data.pretty_print.grid.GridBuilderBase
+import po.misc.data.pretty_print.parts.grid.RenderKey
+import po.misc.data.pretty_print.parts.grid.RenderableType
+import po.misc.data.pretty_print.parts.loader.DataLoader
+import po.misc.data.pretty_print.parts.loader.toElementProvider
+import po.misc.data.pretty_print.parts.options.CellOptions
+import po.misc.data.pretty_print.parts.options.CellPresets
+import po.misc.data.pretty_print.parts.options.CommonRowOptions
+import po.misc.data.pretty_print.parts.options.Options
+import po.misc.data.pretty_print.parts.options.Orientation
+import po.misc.data.pretty_print.parts.options.PrettyHelper
+import po.misc.data.pretty_print.parts.options.RowOptions
+import po.misc.data.pretty_print.parts.rows.RowParams
+import po.misc.data.pretty_print.parts.template.RenderController
+import po.misc.data.pretty_print.parts.options.RowID
+import po.misc.data.pretty_print.parts.template.RowDelegate
+import po.misc.data.pretty_print.parts.template.TemplateDelegate
+import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
-import kotlin.reflect.KProperty
+import po.misc.types.token.tokenOf
+import kotlin.reflect.KProperty0
+import kotlin.reflect.KProperty1
 
 
-interface RowBuilder<T: Any>{
-    val renderBlocks: List<RenderableElement<*, *>>
-    fun addRenderBlock(newRow: RenderableElement<*, *>): RowBuilder<T>
-    fun buildRow(rowOptions: RowOptions? = null, builder: CellContainer<T>.() -> Unit)
-    fun buildRow(rowPresets: RowPresets, builder: CellContainer<T>.() -> Unit): Unit
-    fun onRenderElementComplete(callback: (RenderableElement<T, *>)-> Unit)
-}
+sealed class RowBuilderBase<T>(
+    val receiverType:TypeToken<T>,
+): TokenFactory, TraceableContext, PrettyHelper{
 
-class RowBuilderClass<T: Any>(
-    val  typeToken: TypeToken<T>
-):RowBuilder<T>{
+    abstract val prettyRow: PrettyRowBase<*, T>
+    internal val prettyCellsBacking = mutableListOf<RenderableCell>()
+    internal val cells : List<RenderableCell> get() = prettyCellsBacking
+    internal val renderConditions = mutableListOf<ValidityCondition<T>>()
 
-    internal val prettyRowsBacking: IndexedList<PrettyRow<*>> = indexedListOf()
-    internal val renderBlocsBacking = mutableListOf<RenderableElement<*, *>>()
+    protected val beforeRowRender: Signal<RowParams<T>, Unit> = signalOf<RowParams<T>, Unit>()
+    var options: RowOptions = RowOptions(Orientation.Horizontal)
+        protected set
 
-    override val renderBlocks: List<RenderableElement<*, *>> get() = renderBlocsBacking
+    var orientation : Orientation
+        get() = options.orientation
+        set(value) {
+            options.orientation = value
+        }
 
     @PublishedApi
-    internal var onRenderElementCallback: ((RenderableElement<T, *>)-> Unit)? = null
-    override fun onRenderElementComplete(callback: (RenderableElement<T, *>)-> Unit){
-        onRenderElementCallback = callback
+    internal fun <C: RenderableCell> storeCell(cell : C): C {
+        prettyCellsBacking.add(cell)
+        return cell
     }
 
+    fun applyOptions(opts: CommonRowOptions?){
+        options = toRowOptions(opts, options)
+    }
 
-    /**
-     * Adds a fully constructed row to this grid.
-     *
-     * @param newRow a row instance to append
-     * @return this grid instance for chaining
-     */
-    override fun addRenderBlock(newRow: RenderableElement<*, *>): RowBuilder<T> {
-        if (newRow is PrettyRow) {
-            prettyRowsBacking.add(newRow)
+    open fun finalizeRow(container: GridBuilderBase<*>? = null): PrettyRowBase<*, T> {
+        prettyRow.initCells(cells)
+        prettyRow.renderConditions.addAll(renderConditions.toList())
+        prettyRow.options = options
+        return prettyRow
+    }
+
+    fun acceptDelegate(delegate: RowDelegate<T>){
+        delegate.attachHost(prettyRow)
+    }
+
+    fun withControl(controller: RenderController){
+        controller.bind(prettyRow)
+    }
+
+    fun add(property: KProperty1<T, *>, opt: CellOptions? = null): KeyedCell<T>{
+        val provider = property.toElementProvider(receiverType)
+        val cell = KeyedCell(provider, toOptionsOrNull(opt))
+        return storeCell(cell)
+    }
+
+    fun add(opts: CellOptions? = null, function: Function1<T, Any?>):KeyedCell<T> {
+        val provider = function.toElementProvider(receiverType, TypeToken<Any?>())
+        val cell = KeyedCell(provider).applyOptions(opts)
+        return storeCell(cell)
+    }
+    fun add(content: String, opts: CellOptions? = null):StaticCell {
+        val cell = StaticCell(content, opts)
+        return storeCell(cell)
+    }
+
+    fun add(vararg cells:RenderableCell){
+        cells.forEach { storeCell(it) }
+    }
+
+    fun addAll(
+        firstProperty: KProperty1<T, Any>,
+        vararg property: KProperty1<T, Any>,
+        opts: CellOptions? = null
+    ): List<KeyedCell<T>> {
+        val options = PrettyHelper.toOptions(opts, CellPresets.Property.asOptions())
+        val cells = buildList {
+            add( KeyedCell(firstProperty.toElementProvider(receiverType), options) )
+            addAll(property.map { KeyedCell(it.toElementProvider(receiverType), options) })
         }
-        renderBlocsBacking.add(newRow)
+        prettyCellsBacking.addAll(cells)
+        return cells
+    }
+
+    fun add(
+        function: Function1<T, Any?>,
+        opts: CellOptions? = null
+    ): KeyedCell<T> {
+        val provider = function.toElementProvider(receiverType, TypeToken<Any?>())
+        val cellOptions = PrettyHelper.toOptions(opts)
+        val keyedCell = KeyedCell(provider, toOptionsOrNull(opts))
+        keyedCell.applyOptions(cellOptions)
+        return storeCell(keyedCell)
+    }
+
+    inline fun <reified V : Any> add(
+        property: KProperty1<T, V>,
+        noinline builder: ComputedCell<T, V>.(V) -> Any,
+    ): ComputedCell<T, V> {
+        val provider = property.toElementProvider(receiverType,  tokenOf<V>())
+        val computedCell = ComputedCell(provider, null, builder)
+        return storeCell(computedCell)
+    }
+
+    fun build(opts: CellOptions? = null, builderAction: StringBuilder.()-> Unit): StaticCell {
+        val cell = StaticCell(opts, builderAction)
+        return storeCell(cell)
+    }
+}
+
+class RowBuilder<T>(
+    receiverType: TypeToken<T>,
+    rowID: RowID? = null,
+    opts: CommonRowOptions? = null,
+    prettyRow: PrettyRow<T>? = null,
+): RowBuilderBase<T>(receiverType), PrettyHelper {
+
+    constructor(prettyRow: PrettyRow<T>):this(prettyRow.receiverType, prettyRow.templateID, prettyRow.options, prettyRow)
+    override val prettyRow: PrettyRow<T> = prettyRow?: PrettyRow(receiverType, rowID, opts, emptyList())
+
+    override fun finalizeRow(container: GridBuilderBase<*>?): PrettyRow<T> {
+        super.finalizeRow(container)
+        return prettyRow
+    }
+
+    fun addKeyless(prop: KProperty1<T, Any?>): KeyedCell<T> {
+        val opts = Options(CellPresets.KeylessProperty)
+        val provider =  prop.toElementProvider(receiverType)
+        val cell = KeyedCell(provider, opts)
+        return storeCell(cell)
+    }
+    fun addCell(opts: CellOptions? = null): PrettyCell {
+        val options = PrettyHelper.toOptionsOrNull(opts)
+        val cell = PrettyCell().applyOptions(options)
+        return storeCell(cell)
+    }
+    fun addCells(vararg property: KProperty0<*>): List<KeyedCell<T>> {
+        val cells = property.map { storeCell(KeyedCell(receiverType, it)) }
+        return cells
+    }
+    override fun toString(): String {
+        return buildString {
+            append("RowBuilder of ${prettyRow.templateData}")
+        }
+    }
+
+    companion object: TokenFactory {
+        inline operator fun <reified T> invoke(rowID: RowID? = null, opts: CommonRowOptions? = null):RowBuilder<T>{
+           return  RowBuilder(tokenOf<T>(), rowID, opts)
+        }
+    }
+}
+
+class ValueRowBuilder<S, T>(
+    val sourceType: TypeToken<S>,
+    receiverType: TypeToken<T>,
+    rowID: RowID? = null,
+    opts: CommonRowOptions? = null,
+): RowBuilderBase<T>(receiverType){
+
+    constructor(
+        callable: CallableCollection<S, T>,
+        rowID: RowID? = null
+    ):this(callable.parameterType, callable.resultType, rowID){
+        dataLoader.apply(callable)
+    }
+
+    override val prettyRow: PrettyValueRow<S, T> = PrettyValueRow(sourceType, receiverType, rowID,  opts)
+
+    val dataLoader: DataLoader<S, T> get() =  prettyRow.dataLoader
+
+    internal var renderKey: RenderKey? = null
+    var preSavedBuilder: (ValueRowBuilder<S, T>.() -> Unit)? = null
+        internal set
+    var preSavedBuilderUsed: Boolean = false
+        private set
+
+    fun acceptDelegate(delegate: TemplateDelegate<T>){
+        delegate.attachHost(prettyRow)
+    }
+
+    override fun finalizeRow(container: GridBuilderBase<*>?): PrettyValueRow<S, T>{
+        preSavedBuilder?.invoke(this)
+        super.finalizeRow(container)
+        return prettyRow
+    }
+
+    fun preSaveBuilder(builder: ValueRowBuilder<S, T>.() -> Unit){
+        preSavedBuilderUsed = true
+        preSavedBuilder = builder
+    }
+    fun renderSourceHere(){
+        renderKey = RenderKey(prettyRow.size, RenderableType.Row)
+    }
+    fun renderIf(predicate: (T) -> Boolean): ValueRowBuilder<S, T> {
+        renderConditions.add(ValidityCondition("$this render if condition", predicate))
         return this
     }
-
-
-    /**
-     * Builds a new row using a DSL-style builder.
-     *
-     * @param rowOptions configuration for orientation, styling, and identification
-     * @param builder the lambda that defines this row's cells
-     */
-    override fun buildRow(rowOptions: RowOptions?, builder: CellContainer<T>.() -> Unit) {
-        val newRow = PrettyRow.buildRow(typeToken, rowOptions, builder)
-        addRenderBlock(newRow)
-        renderBlocsBacking.add(newRow)
-    }
-
-    /**
-     * Builds a row from a preset row configuration.
-     *
-     * @param rowOptions a preset that can be converted into [RowOptions]
-     * @param builder the lambda describing cell contents
-     */
-    override fun buildRow(rowPresets: RowPresets, builder: CellContainer<T>.() -> Unit): Unit =
-        buildRow(rowPresets.toOptions(), builder)
-
-    /**
-     * Builds a transition row bound to a property of [T].
-     *
-     * The row receives the property's value and renders it using the given DSL builder.
-     *
-     * Example:
-     * ```
-     * buildRow(User::address) {
-     *     addCell(Address::street)
-     *     addCell(Address::city)
-     * }
-     * ```
-     *
-     * @param property the property whose value will become the row's receiver object
-     * @param preset optional row preset for styling and orientation
-     * @param builder DSL for defining cells
-     */
-    inline fun <reified T1 : Any> buildRow(
-        property: KProperty<T1>,
-        preset: RowPresets? = null,
-        noinline builder: CellContainer<T1>.() -> Unit
-    ): Unit {
-        val row = TransitionRow.buildRow(property, typeToken, preset, builder)
-        addRenderBlock(row)
-        onRenderElementCallback?.invoke(row)
-        //gridBase.addRenderBlock(row)
-    }
-
+    companion object
 }
+
+
+
+

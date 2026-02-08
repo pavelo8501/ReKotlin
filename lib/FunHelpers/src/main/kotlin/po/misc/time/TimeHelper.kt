@@ -8,26 +8,33 @@ import java.time.format.DateTimeFormatter
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+interface DateTimeFormat{
+    val pattern: String
+}
+
+object TimeFormat: DateTimeFormat{
+    override val pattern : String = "HH:mm:ss"
+}
+object DateFormat: DateTimeFormat{
+    override val pattern : String = "dd.MM.yyyy"
+}
+
+object DateTime: DateTimeFormat{
+    override val pattern : String = "dd.MM.yyyy / HH:mm:ss"
+}
+
 interface TimeHelper {
-
-    interface DateTimeFormats{
-        val patten: String
-
-        companion object{
-            const val dateTime = "dd.MM.yyyy / HH:mm:ss"
-        }
-    }
-
-    object DateTimeFormat : DateTimeFormats {
-        override val patten: String = DateTimeFormats.dateTime
-    }
 
     /**
      * Returns the current moment in UTC as an [Instant].
      *
      * Use when an absolute, timezone-independent timestamp is required.
      */
-    fun nowTimeUtc(): Instant = Instant.now()
+    fun nowTime(): Instant = Instant.now()
+    fun nowTime(format: DateTimeFormat, hoursOffset: Int = 2): String{
+        val zone = Instant.now().atOffset(ZoneOffset.ofHours(hoursOffset))
+        return zone.format(DateTimeFormatter.ofPattern(format.pattern))
+    }
 
     /**
      * Returns the current date and time in UTC as a [ZonedDateTime].
@@ -78,7 +85,7 @@ interface TimeHelper {
     }
 
     fun Instant.toLocalDateTime(
-        format : DateTimeFormats = DateTimeFormat,
+        format : DateTimeFormat = DateTime,
         hoursOffset: Int = 2
     ): String {
         return atZone(ZoneOffset.ofHours(hoursOffset)).timeFormatted(format)
@@ -94,8 +101,8 @@ interface TimeHelper {
         return format(DateTimeFormatter.ofPattern(pattern))
     }
 
-    fun  ZonedDateTime.timeFormatted(format : DateTimeFormats): String{
-        return format(DateTimeFormatter.ofPattern(format.patten))
+    fun  ZonedDateTime.timeFormatted(format : DateTimeFormat): String{
+        return format(DateTimeFormatter.ofPattern(format.pattern))
     }
 
     fun Instant.hoursFormated(hoursOffset: Int): String =  hoursFormated(this.atOffset(ZoneOffset.ofHours(hoursOffset)))

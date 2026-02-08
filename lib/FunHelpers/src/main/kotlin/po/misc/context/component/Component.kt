@@ -3,7 +3,7 @@ package po.misc.context.component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.output.output
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
@@ -11,6 +11,9 @@ import po.misc.data.logging.log_subject.DebugSubject
 import po.misc.data.logging.log_subject.InfoSubject
 import po.misc.data.logging.log_subject.LogSubject
 import po.misc.data.logging.parts.LogTracker
+import po.misc.data.strings.stringify
+import po.misc.data.styles.Colour
+import po.misc.data.styles.colorize
 import po.misc.exceptions.throwableToText
 
 
@@ -94,7 +97,7 @@ interface Component : TraceableContext {
     fun message(
         subject: String,
         text: String,
-        topic: NotificationTopic = NotificationTopic.Info,
+        topic: Topic = Topic.Info,
         tracker: LogTracker = LogTracker.Enabled
     ): LogMessage {
         return  LogMessage(this, subject, text, topic, tracker)
@@ -103,34 +106,34 @@ interface Component : TraceableContext {
     fun debugMsg(
         logSubject: DebugSubject,
     ): LogMessage {
-        return message(logSubject.subjectName, logSubject.subjectText, NotificationTopic.Debug, LogTracker.Enabled)
+        return message(logSubject.subjectName, logSubject.subjectText, Topic.Debug, LogTracker.Enabled)
     }
 
     fun debugMsg(
         subject: String,
         text: String,
     ): LogMessage {
-        return message(subject, text, NotificationTopic.Debug, LogTracker.Enabled)
+        return message(subject, text, Topic.Debug, LogTracker.Enabled)
     }
 
     fun infoMsg(
         subject: InfoSubject,
         text: String? = null
     ): LogMessage{
-        return message( subject.subjectName, text?:subject.subjectText, NotificationTopic.Info)
+        return message( subject.subjectName, text?:subject.subjectText, Topic.Info)
     }
 
     fun infoMsg(
         subject: String,
         text: String
-    ): LogMessage = message(subject, text, NotificationTopic.Info)
+    ): LogMessage = message(subject, text, Topic.Info)
 
     fun warning(
         subject: String,
         text: String,
         tracker: LogTracker = LogTracker.Enabled
     ): LogMessage{
-        return message(subject, text, NotificationTopic.Warning, tracker)
+        return message(subject, text, Topic.Warning, tracker)
     }
 
     fun warning(
@@ -138,13 +141,16 @@ interface Component : TraceableContext {
         throwable: Throwable,
         tracker: LogTracker = LogTracker.Enabled
     ): LogMessage{
-       return message(subject, throwable.throwableToText(), NotificationTopic.Warning, tracker)
+       return message(subject, throwable.throwableToText(), Topic.Warning, tracker)
     }
 
-    companion object {
-
-
-
+    fun output(msg: String, colour: Colour? = null) {
+        if (colour != null) {
+            println("${componentName.colorize(Colour.Blue)} -> ${msg.colorize(colour)}")
+        } else {
+            println("${componentName.colorize(Colour.Blue)} -> $msg")
+        }
     }
+    companion object
 }
 

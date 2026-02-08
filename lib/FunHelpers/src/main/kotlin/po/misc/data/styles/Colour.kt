@@ -1,7 +1,7 @@
 package po.misc.data.styles
 
 
-enum class Colour(val code: String) {
+enum class Colour(override val code: String) : StyleCode {
     Default(""),
     Red("\u001B[31m"),
     Yellow("\u001B[33m"),
@@ -21,5 +21,12 @@ enum class Colour(val code: String) {
     WhiteBright("\u001B[97m"),
     GrayLight("\u001B[90m"),
     RESET("\u001B[0m");
+
+    companion object {
+
+        fun matchByNameOrDefault(name: String):Colour{
+            return entries.firstOrNull { it.name.equals(name, ignoreCase = true) }?: Default
+        }
+    }
 
 }

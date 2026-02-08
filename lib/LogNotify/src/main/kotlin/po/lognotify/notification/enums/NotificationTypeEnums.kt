@@ -1,7 +1,6 @@
 package po.lognotify.notification.enums
 
-import po.misc.interfaces.ValueBased
-
+import po.misc.data.NameValue
 
 enum class EventType(val eventId: Int){
     UNKNOWN(0),
@@ -31,7 +30,7 @@ enum class EventType(val eventId: Int){
     }
 }
 
-enum class TaskEvent(override val value: Int): ValueBased{
+enum class TaskEvent(override val value: Int): NameValue{
     Info(1),
     Warning(2),
     Exception(3)

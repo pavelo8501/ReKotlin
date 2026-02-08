@@ -1,23 +1,34 @@
 package po.misc.data
 
-import po.misc.data.pretty_print.section.PrettySection
-import kotlin.reflect.KProperty0
+import po.misc.data.pretty_print.parts.options.RowID
+import po.misc.data.styles.StringFormatter
+import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.StyledPair
+import po.misc.data.text_span.TextSpan
+import po.misc.types.k_class.readAllProperties
 
 
 interface PrettyPrint: TextBuilder {
     val formattedString: String
+    companion object:  StringFormatter()
 }
+
+interface Styled{
+    val textSpan: TextSpan
+    val plain: String get() = textSpan.plain
+    val styled: String get() = textSpan.styled
+}
+
 
 interface PrettyFormatted {
-
-    fun formatted(sections: Collection<Enum<*>>? = null): String
-    fun formatted(vararg sections: Enum<*>): String = formatted(sections.toList())
+    fun formatted(renderOnly: List<RowID>? = null): String
+    fun formatted(vararg renderOnly: RowID): String = formatted(renderOnly.toList())
 }
 
-
-fun StringBuilder.appendGroup(prefix: String, postfix: String, vararg props:  KProperty0<*>):StringBuilder{
-    val propStr = props.toList().joinToString { "${it.name}: ${it.get().toString()}" }
-    return append("$prefix$propStr$prefix")
+inline  fun <reified T:PrettyPrint> T.snapshot():List<String>{
+    val snap =  this@snapshot as Any
+    val res =  snap::class.readAllProperties(snap)
+    return res
 }
 
 

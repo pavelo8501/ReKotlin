@@ -5,18 +5,15 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.output.ToString
 import po.misc.data.output.output
+import po.misc.debugging.stack_tracer.CallSite
 import po.misc.exceptions.ExceptionPayload
-import po.misc.exceptions.TraceCallSite
 import po.misc.exceptions.Tracer
-import po.misc.exceptions.stack_trace.CallSiteReport
-import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.debugging.stack_tracer.ExceptionTrace
+import po.misc.debugging.stack_tracer.extractTrace
 import po.misc.types.k_class.simpleOrAnon
 import kotlin.reflect.cast
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -45,16 +42,13 @@ class TestTraceHelpers : TraceableContext {
     }
 
 
-    fun createExceptionTrace(useMethod: String? = null): ExceptionTrace{
-        if(useMethod != null){
-          return  Tracer().extractTrace(TraceCallSite(thiClassName, methodName = useMethod))
-        }
-        return Tracer().extractTrace(TraceCallSite(thiClassName, methodName = null))
+    fun createExceptionTrace(useMethod: String): ExceptionTrace{
+        return Tracer().extractTrace(CallSite(useMethod,  thiClassName))
     }
 
     @Test
     fun `Trace option modify behaviour as expected`() {
-        val trace = createExceptionTrace()
+        val trace = createExceptionTrace("Trace option modify behaviour as expected")
         assertNotNull(trace.frameMetas.firstOrNull { it.methodName == "createExceptionTrace" })
         val byMethodName = createExceptionTrace("Trace option modify behaviour as expected")
         assertNotNull(byMethodName.frameMetas.firstOrNull { it.methodName == "Trace option modify behaviour as expected" })

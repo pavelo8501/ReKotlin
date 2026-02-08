@@ -1,52 +1,68 @@
 package po.test.misc.debugging.stack_tracer
 
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInstance
 import po.misc.context.component.Component
-import po.misc.data.logging.NotificationTopic
-import po.misc.data.logging.StructuredLoggable
+import po.misc.data.logging.Topic
 import po.misc.data.logging.models.LogMessage
 import po.misc.debugging.classifier.HelperRecord
 import po.misc.debugging.stack_tracer.TraceResolver
-import po.misc.exceptions.stack_trace.CallSiteReport
+import po.misc.debugging.stack_tracer.reports.CallSiteReport
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
+
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TestTraceResolver : Component {
 
     private var callSiteReport: CallSiteReport? = null
-
     private var resolver = TraceResolver(this, HelperRecord("TestTraceResolver", "debug")) {
         callSiteReport = it
     }
-    override fun notify(logMessage: LogMessage): StructuredLoggable {
-        resolver.process(logMessage)
-        return logMessage
-    }
+
     private fun intermediaryMethod(){
         debug("Some subject", "Some text")
     }
 
-
-    fun `TraceResolver creates call-site report correctly`() {
-        resolver.resolveTraceWhen(NotificationTopic.Debug)
-        intermediaryMethod()
-        assertNotNull(callSiteReport){
-            assertEquals(0, it.hopFrames.size)
-        }
+    override fun notify(logMessage: LogMessage): LogMessage {
+        resolver.processMsg(logMessage, false)
+        return logMessage
     }
 
+    @BeforeTest
+    fun setup() {
+        resolver.resolveTraceWhen(Topic.Debug)
+        assertEquals(6, resolver.classifier.records.size)
+        assertNotNull(resolver.classifier["TestTraceResolver"])
+    }
 
-    fun `Call site report with 1 hop frame`() {
-        resolver = TraceResolver(this)
-        var thisReport : CallSiteReport? = null
-        resolver.resolveTraceWhen(NotificationTopic.Debug)
-        resolver.traceResolved {
-            thisReport = it
-        }
+    @BeforeEach
+    fun teardown(){
+        callSiteReport = null
+    }
+
+    @Test
+    fun `TraceResolver creates call site report with no hop frame`() {
+        val thisMethodName = "TraceResolver creates call site report with no hop frame"
+        val debugMsg = debugMsg("Some subject", "Some text")
+        resolver.processMsg(debugMsg, print = false)
+        val report = assertNotNull(callSiteReport)
+        assertEquals(0, report.hopFrames.size)
+        assertEquals(thisMethodName, report.callerFrame.methodName)
+        assertEquals(thisMethodName, report.registrationFrame.methodName)
+    }
+
+    @Test
+    fun `TraceResolver creates call site report with 2 hop frames`() {
+        val thisMethodName = "TraceResolver creates call site report with 2 hop frames"
+        val notifyMethodName = "notify"
         intermediaryMethod()
-        assertNotNull(thisReport){report->
-            assertEquals(1, report.hopFrames.size)
-            assertEquals("intermediaryMethod", report.hopFrames.first().methodName)
-        }
+        val report =  assertNotNull(callSiteReport)
+        assertEquals(2, report.hopFrames.size)
+        assertNotNull(report.hopFrames.firstOrNull{ it.methodName == "intermediaryMethod" })
+        assertEquals(thisMethodName,  report.callerFrame.methodName)
+        assertEquals(notifyMethodName,  report.registrationFrame.methodName)
     }
 }

@@ -2,7 +2,7 @@ package po.test.misc.exceptions.stack_trace
 
 import org.junit.jupiter.api.Test
 import po.misc.context.tracable.TraceableContext
-import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.debugging.stack_tracer.ExceptionTrace
 import po.test.misc.exceptions.setup.TraceNotifier
 import po.test.misc.exceptions.setup.notifyOrNotExtension
 import kotlin.test.assertEquals

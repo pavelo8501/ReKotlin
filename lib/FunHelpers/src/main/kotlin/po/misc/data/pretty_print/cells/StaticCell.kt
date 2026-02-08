@@ -1,84 +1,64 @@
 package po.misc.data.pretty_print.cells
 
-import po.misc.data.pretty_print.parts.CellOptions
-import po.misc.data.pretty_print.parts.CellRender
-import po.misc.data.pretty_print.parts.CommonRenderOptions
-import po.misc.data.pretty_print.parts.Orientation
-import po.misc.data.pretty_print.presets.PrettyPresets
-import po.misc.data.strings.classParam
-import po.misc.data.strings.classProperty
-import po.misc.data.strings.stringify
-import po.misc.types.isNotNull
+import po.misc.data.pretty_print.parts.cells.RenderRecord
+import po.misc.data.pretty_print.parts.options.CellOptions
+import po.misc.data.pretty_print.parts.options.CellPresets
+import po.misc.data.pretty_print.parts.options.Options
+import po.misc.data.pretty_print.parts.options.PrettyHelper
+import po.misc.data.pretty_print.parts.render.CellParameters
+import po.misc.data.strings.appendParam
+import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.MutableSpan
+import po.misc.types.token.TypeToken
 
 
 class StaticCell(
-    var content: Any? = null,
-    options: CellOptions = CellOptions()
-): PrettyCellBase<PrettyPresets>(options), CellRenderer{
+    val text :String,
+    opts: CellOptions? = null
+): PrettyCellBase<Unit>(PrettyHelper.toOptions(opts, plainText), TypeToken<Unit>()), StaticRenderingCell, TextStyler, PrettyHelper {
 
-    val text: String get() = content.stringify().toString()
-
-    var lockContent: Boolean = false
-        internal set
-
-    init {
-        if(content.isNotNull()){
-            lockContent = true
+    override fun render(opts: CellOptions?): String {
+        
+        if(!explicitOptions){
+            renderOptions = toOptions(opts, renderOptions)
         }
+
+        return finalizeRender(RenderRecord(MutablePair(text),null, null))
+    }
+    fun render(optionBuilder: (Options) -> Unit): String {
+        optionBuilder.invoke(renderOptions)
+        explicitOptions = true
+        return  finalizeRender(RenderRecord(MutablePair(text),null, null))
     }
 
-    fun changeContent(newContent: Any):StaticCell{
-        content = newContent
-        return this
+    override fun CellParameters.renderInScope(): MutableSpan {
+        return finalizeScopedRender(RenderRecord(MutablePair(text),null, null))
     }
-    fun changeText(text: String):StaticCell{
-        content = text
-        return this
-    }
-    fun applyText(textProvider: ()-> String ):StaticCell{
-        content = textProvider()
-        return this
-    }
-    fun buildText(builderAction: StringBuilder.() -> Unit):StaticCell{
-        val result = buildString(builderAction)
-        content = result
-        return this
-    }
-
-    fun render(renderOptions: CommonRenderOptions): String {
-        val entry = content.stringify()
-        val usedText = if(renderOptions.usePlain){
-            entry.text
-        } else {
-            entry.formatedText
+    override fun applyOptions(opts: CellOptions?): StaticCell{
+        val options = toOptionsOrNull(opts)
+        if(options!=null){
+            setOptions(options)
         }
-        val modified =  staticModifiers.modify(usedText)
-        val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  renderOptions)
-        return final
-    }
-    fun render(): String = render(CellRender(Orientation.Horizontal))
-
-    override fun render(content: String, renderOptions: CommonRenderOptions): String {
-        val entry = content.stringify()
-        val usedText = if(renderOptions.usePlain){
-            entry.text
-        } else {
-            entry.formatedText
-        }
-        val modified =  staticModifiers.modify(usedText)
-        val formatted =  compositeFormatter.format(modified, this)
-        val final = justifyText(formatted,  renderOptions)
-        return final
+       return this
     }
 
+    override fun copy(): StaticCell{
+       return StaticCell(text, cellOptions.copy())
+    }
     override fun toString(): String {
         return buildString {
-            appendLine("StaticCell")
-            classParam("id", options.id)
-            classParam("width", options.width)
-            classProperty(::lockContent)
+            append("StaticCell")
+            appendParam("Width", cellOptions.width)
+            appendParam(::text)
         }
     }
-    companion object
+
+    companion object {
+        val plainText: Options = Options(CellPresets.PlainText)
+        operator fun invoke(opts: CellOptions? = null, builderAction: StringBuilder.() -> Unit): StaticCell {
+            val result = buildString(builderAction)
+            return StaticCell(result, opts)
+        }
+    }
 }

@@ -4,6 +4,7 @@ import po.misc.collections.maps.ClassKeyedMap
 import po.misc.data.output.output
 import po.misc.data.styles.Colour
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.safeCast
 import kotlin.reflect.KClass
@@ -34,7 +35,7 @@ class ThrowableRegistry {
     }
 
     val terminationHandlers: ClassKeyedMap<KClass<out Throwable>, LambdaContainer<Throwable, Nothing>> =  ClassKeyedMap()
-    inline fun  <reified TH: Throwable> registerNoReturn(lambdaType: LambdaType.Suspended, noinline  lambda: suspend (TH)-> Nothing){
+    inline fun  <reified TH: Throwable> registerNoReturn(lambdaType: Suspended, noinline  lambda: suspend (TH)-> Nothing){
         lambda.safeCast<suspend (Throwable)-> Nothing >()?.let { casted->
             terminationHandlers[TH::class] =  SuspendedLambda(suspended =  casted)
         }?:run {
@@ -64,7 +65,7 @@ class ThrowableRegistry {
     }
     suspend fun  <TH: Throwable> dispatch(
         throwable:TH,
-        suspended:  LambdaType.Suspended
+        suspended:  Suspended
     ): Nothing{
        val handlerFound =  terminationHandlers[throwable::class]
         if(handlerFound != null){

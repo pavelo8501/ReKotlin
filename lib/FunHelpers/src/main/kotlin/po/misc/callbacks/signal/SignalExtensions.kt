@@ -4,6 +4,7 @@ import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 import po.misc.functions.SuspendedOptions
 
 
@@ -64,7 +65,7 @@ fun <T: Any, R> TraceableContext.listen(
 /**
  * Registers a suspending listener on the given [signal], using this
  * [TraceableContext] as the listener identity, where the listener mode is
- * explicitly selected using [LambdaType.Suspended].
+ * explicitly selected using [Suspended].
  *
  * This overload exists *solely* to avoid Kotlin overload ambiguity when
  * the compiler cannot infer whether the listener is synchronous or
@@ -85,7 +86,7 @@ fun <T: Any, R> TraceableContext.listen(
  */
 fun <T: Any, R> TraceableContext.listen(
     signal: Signal<T, R>,
-    suspended: LambdaType.Suspended,
+    suspended: Suspended,
     callback: suspend (T)->R
 ): Unit = signal.onSignal(this, SuspendedOptions.Listen, callback)
 

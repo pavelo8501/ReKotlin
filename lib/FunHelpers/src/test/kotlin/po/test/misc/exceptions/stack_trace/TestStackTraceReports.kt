@@ -1,12 +1,11 @@
 package po.test.misc.exceptions.stack_trace
 
-import org.junit.jupiter.api.Test
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.output.output
-import po.misc.exceptions.TraceCallSite
-import po.misc.exceptions.stack_trace.CallSiteReport
-import po.misc.exceptions.stack_trace.ExceptionTrace
-import po.misc.exceptions.trace
+import po.misc.debugging.stack_tracer.CallSite
+import po.misc.exceptions.extractTrace
+import po.misc.debugging.stack_tracer.reports.CallSiteReport
+import po.misc.debugging.stack_tracer.ExceptionTrace
 import po.test.misc.exceptions.setup.TraceNotifier
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -16,9 +15,10 @@ class TestStackTraceReports {
 
     class SubClass() : TraceableContext {
         fun createTrace(): ExceptionTrace {
-            return trace(TraceCallSite("TestStackTraceReports", ::createTrace))
+            return extractTrace(CallSite("TestStackTraceReports", ::createTrace))
         }
     }
+
     private val notifier = TraceNotifier(notifyOnValue = 300)
 
     fun intermediaryMethod(value: Int): ExceptionTrace? {
@@ -35,7 +35,7 @@ class TestStackTraceReports {
         val registeredFunName = SubClass::createTrace.name
         val subClass = SubClass()
         val trace = subClass.createTrace()
-        val report: CallSiteReport = ExceptionTrace.callSiteReport(trace)
+        val report: CallSiteReport = trace.callSite()
         val render = report.formattedString
         assertTrue { render.contains(registeredFunName) && render.contains(thisFunName) }
     }
@@ -44,7 +44,7 @@ class TestStackTraceReports {
     fun `Call site report render hops as expected`() {
         val stackTrace = intermediaryMethod(300)
         assertNotNull(stackTrace)
-        val report = ExceptionTrace.callSiteReport(stackTrace)
+        val report = stackTrace.callSite()
         val reportRender = report.formattedString
         assertEquals(1, report.hopFrames.size)
     }
@@ -53,7 +53,7 @@ class TestStackTraceReports {
     fun `Call site report render multiple hops as expected`() {
         val stackTrace = intermediaryMethod2(300)
         assertNotNull(stackTrace)
-        val report = ExceptionTrace.callSiteReport(stackTrace)
+        val report = stackTrace.callSite()
         val reportRender = report.formattedString
         assertEquals(2, report.hopFrames.size)
         reportRender.output()

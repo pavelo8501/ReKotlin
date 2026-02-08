@@ -5,13 +5,35 @@ import po.misc.data.output.output
 import po.misc.exceptions.ExceptionPayload
 import po.misc.exceptions.ManagedException
 import po.misc.exceptions.ManagedPayload
-import po.misc.exceptions.stack_trace.extractTrace
+import po.misc.debugging.stack_tracer.extractTrace
 import po.misc.exceptions.throwableToText
 import po.misc.functions.Throwing
+import po.misc.types.k_class.asDefinitelyNotNull
+import po.misc.types.k_class.checkDefinitelyNotNull
 import po.misc.types.k_class.simpleOrAnon
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
+
+
+@PublishedApi
+internal fun <T> performSafeCast(
+    receiver: Any,
+    kClass: KClass<T & Any>?
+):T? {
+    return try {
+        if(kClass != null) {
+          return  kClass.cast(receiver)
+        }
+        return null
+    }catch (th: Throwable){
+        if (th !is ClassCastException) {
+            th.extractTrace().output()
+            th.throwableToText().output()
+        }
+        null
+    }
+}
 
 
 /**
@@ -33,21 +55,9 @@ import kotlin.reflect.cast
  * val unknown: Any = "Hello"
  * val result: Int? = unknown.safeCast(Int::class)  // returns null, logs exception
  */
-fun <T: Any> Any.safeCast(
-    kClass: KClass<T>,
-):T? {
-    return try {
-        kClass.cast(this)
-    }catch (th: Throwable){
-        if (th !is ClassCastException) {
-            th.extractTrace().output()
-            th.throwableToText().output()
-        }
-        null
-    }
-}
-
-fun <T> Any.safeCast(token: TypeToken<T>):T? = safeCast(token.kClass)
+fun <T> Any.safeCast(
+    kClass: KClass<T & Any>
+):T? = performSafeCast(this, kClass)
 
 
 /**
@@ -63,7 +73,7 @@ fun <T> Any.safeCast(token: TypeToken<T>):T? = safeCast(token.kClass)
  * val x: Any = "Hello"
  * val number: Int? = x.safeCast<Int>()   // returns null, logs error
  */
-inline fun <reified T: Any> Any.safeCast(): T? = safeCast(T::class)
+inline fun <reified T> Any.safeCast(): T? = performSafeCast(this,  T::class.checkDefinitelyNotNull())
 
 
 /**

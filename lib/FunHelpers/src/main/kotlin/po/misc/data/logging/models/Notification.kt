@@ -3,7 +3,7 @@ package po.misc.data.logging.models
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
@@ -21,7 +21,7 @@ data class Notification(
     override val context: TraceableContext,
     override val subject: String,
     override val text: String,
-    override val topic: NotificationTopic,
+    override val topic: Topic,
 ): Loggable, TimeHelper, PrettyPrint {
 
     constructor(loggable: Loggable):this(loggable.context, loggable.subject,loggable.text, loggable.topic)
@@ -31,9 +31,9 @@ data class Notification(
 
     private val formattedText: String get() {
        return when(topic){
-            NotificationTopic.Info,  NotificationTopic.Debug ->  text.colorize(Colour.WhiteBright)
-            NotificationTopic.Warning -> text.colorize(Colour.Yellow)
-            NotificationTopic.Exception -> text.colorize(Colour.Red)
+            Topic.Info,  Topic.Debug ->  text.colorize(Colour.WhiteBright)
+            Topic.Warning -> text.colorize(Colour.Yellow)
+            Topic.Exception -> text.colorize(Colour.Red)
         }
     }
 

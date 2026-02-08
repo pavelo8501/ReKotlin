@@ -6,9 +6,10 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.coroutines.coroutineInfo
 import po.misc.data.logging.ContextAware
 import po.misc.exceptions.ExceptionLocator
-import po.misc.exceptions.stack_trace.extractTrace
-import po.misc.exceptions.trackable.TrackableException
+import po.misc.exceptions.TraceException
+import po.misc.debugging.stack_tracer.extractTrace
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 
 
 inline fun <reified TH: Throwable> ContextAware.registerHandler(
@@ -16,7 +17,7 @@ inline fun <reified TH: Throwable> ContextAware.registerHandler(
 ): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(block)
 
 inline fun <reified TH: Throwable> ContextAware.registerHandler(
-    suspended:LambdaType.Suspended,
+    suspended: Suspended,
     noinline block: suspend (TH)-> Nothing
 ): Unit = ExceptionLocator.throwableRegistry.registerNoReturn<TH>(suspended, block)
 
@@ -31,15 +32,15 @@ inline fun <R: Any> TraceableContext.delegateIfThrow(block:()-> R):R{
 }
 
 suspend fun <R: Any> Component.delegateIfThrow(
-    suspended: LambdaType.Suspended, block: suspend ()-> R
+    suspended: Suspended, block: suspend ()-> R
 ):R {
     try {
         return block()
     }catch (throwable: Throwable){
         val exceptionTrace = throwable.extractTrace()
-        if(throwable is TrackableException){
+        if(throwable is TraceException){
             val context =  currentCoroutineContext()
-            throwable.coroutineInfo = context.coroutineInfo(throwable.contextClass, exceptionTrace.bestPick.methodName)
+            throwable.coroutineInfo = context.coroutineInfo(this::class, exceptionTrace.bestPick.methodName)
         }
 
         warn("delegateIfThrow",  throwable)

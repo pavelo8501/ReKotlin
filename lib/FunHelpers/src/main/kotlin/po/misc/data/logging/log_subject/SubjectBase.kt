@@ -1,6 +1,6 @@
 package po.misc.data.logging.log_subject
 
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.badges.Badge
 import po.misc.data.logging.parts.LogBadge
 import po.misc.debugging.ClassResolver
@@ -45,7 +45,7 @@ abstract class SubjectBase(
 
 class GenericSubject(
     override var subjectText: String,
-    override val topic: NotificationTopic,
+    override val topic: Topic,
     badge: LogBadge?
 ) : SubjectBase(badge)
 

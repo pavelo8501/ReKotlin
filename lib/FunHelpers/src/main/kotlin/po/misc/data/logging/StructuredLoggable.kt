@@ -52,7 +52,6 @@ interface LoggableTemplate : Loggable{
 
     val logRecord: StructuredLoggable
 
-
     fun addRecord(templateRecord: LoggableTemplate)
     fun getRecord(action : TemplateActions = TemplateActions.LastRegistered):LoggableTemplate
     fun getRecords(): Collection<LoggableTemplate>

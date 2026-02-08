@@ -38,7 +38,7 @@ internal fun <H: EventHost, T: Any> createEvent(
 }
 
 /**
- * Creates a hosted [po.misc.callbacks.events.HostedEvent] bound to this [po.misc.callbacks.events.EventHost].
+ * Creates a hosted [po.misc.callbacks.event.HostedEvent] bound to this [EventHost].
  *
  * Unlike standalone [Signal] dispatchers, hosted events are associated with
  * a specific owner component and represent domain-level events such as
@@ -46,7 +46,7 @@ internal fun <H: EventHost, T: Any> createEvent(
  *
  * @param parameterType type information for the payload [T].
  * @param resultType type information for the return type [R].
- * @return a new [po.misc.callbacks.events.HostedEvent] owned by this [po.misc.callbacks.events.EventHost].
+ * @return a new [po.misc.callbacks.event.HostedEvent] owned by this [EventHost].
  *
  * @see event for the builder-based variant with handler registration.
  */

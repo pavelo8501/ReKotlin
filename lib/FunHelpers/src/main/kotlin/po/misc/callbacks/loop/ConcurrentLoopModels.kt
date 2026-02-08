@@ -13,8 +13,6 @@ class LoopConfig(
     var verbosity: Verbosity = Verbosity.Info
 )
 
-
-
 data class LoopStats(
     var perLoopProcessedCount: Int = 0,
     var totalProcessedCount: Long = 0,

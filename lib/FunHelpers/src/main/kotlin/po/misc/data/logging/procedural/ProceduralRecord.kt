@@ -1,10 +1,9 @@
 package po.misc.data.logging.procedural
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.PrettyPrint
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.LoggableTemplate
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
@@ -12,20 +11,13 @@ import po.misc.data.printable.PrintableBase
 import po.misc.data.printable.companion.PrintableCompanion
 import po.misc.data.printable.companion.Template
 import po.misc.data.printable.companion.nextLine
-import po.misc.data.printable.grouping.printableProperty
 import po.misc.data.badges.Badge
-import po.misc.data.helpers.replaceIfNull
 import po.misc.data.logging.processor.contracts.TemplateActions
 import po.misc.data.logging.processor.parts.StructuredOptions
-import po.misc.data.logging.processor.parts.StructuredProperty
 import po.misc.data.logging.processor.parts.structuredProperty
-import po.misc.data.output.output
-import po.misc.data.pretty_print.cells.PrettyCell
-import po.misc.data.pretty_print.rows.PrettyRow
-import po.misc.data.strings.IndentOptions
+import po.misc.data.pretty_print.parts.options.RowID
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
-import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.types.token.TypeToken
@@ -53,7 +45,7 @@ import java.time.Instant
  * ```
  *
  * @property context the originating [TraceableContext] from which this record was emitted
- * @property topic the [NotificationTopic] describing the severity or intent of the record
+ * @property topic the [Topic] describing the severity or intent of the record
  * @property subject the logical subject or label for this record (e.g., "Parsing Config")
  * @property text the human-readable message text for the record
  * @property created the timestamp marking when this record was created
@@ -61,7 +53,6 @@ import java.time.Instant
  * @see StructuredLoggable
  * @see ProceduralEntry
  * @see ProceduralFlow
- * @see po.misc.data.logging.processor.LogProcessor.logScope
  */
 
 class ProceduralRecord(
@@ -69,13 +60,15 @@ class ProceduralRecord(
     private val topNode: Boolean = true
 ): PrintableBase<ProceduralRecord>(this), ProceduralData,  LoggableTemplate{
 
+    enum class ProceduralTemplate: RowID { Record, Entry,  }
+
     constructor(logRecord: StructuredLoggable, topNode: Boolean = true): this(logRecord.toLogMessage(), topNode)
 
     override val context: TraceableContext = logRecord.context
     override val subject: String = logRecord.subject
     override val text: String = logRecord.text
     override val created: Instant = logRecord.created
-    override val topic: NotificationTopic = logRecord.topic
+    override val topic: Topic = logRecord.topic
 
     private var currentIndentLevel: Int = 0
 
@@ -98,20 +91,18 @@ class ProceduralRecord(
         }
     }
 
-
     internal val structuredOptions = StructuredOptions(this){loggable->
         val lastEntry = proceduralEntries.lastOrNull()
         if(lastEntry != null){
             lastEntry.addRecord(loggable)
         }else{
-            val entry = ProceduralFlow.createEntry(this@ProceduralRecord, loggable)
+            val entry = ProceduralFlow.createEntry(loggable)
             entry.logRecords.add(loggable)
             proceduralEntries.add(entry)
         }
         logRecord.addRecord(loggable)
     }
     val logRecords: MutableList<StructuredLoggable> by structuredProperty(structuredOptions)
-
 
 
 //    val logRecords: MutableList<StructuredLoggable> by printableProperty{loggable->
@@ -177,7 +168,7 @@ class ProceduralRecord(
     }
 
     fun calculateResult(): ProceduralResult {
-        proceduralEntries.flatMap { it.proceduralRecords }.forEach {
+        proceduralEntries.flatMap { it.records }.forEach {
             it.calculateResult()
         }
         if(proceduralEntries.any { it.stepResult is StepResult.Fail }){
@@ -199,14 +190,14 @@ class ProceduralRecord(
             logRecord.addRecord(templateRecord.logRecord)
             lastEntry.addEntry(templateRecord)
         }else{
-            val newEntry = ProceduralFlow.createEntry(this, templateRecord.subject, Badge.Init)
+            val newEntry = ProceduralFlow.createEntry(templateRecord.subject, Badge.Init)
             newEntry.logRecords.add(templateRecord.logRecord)
             newEntry.addEntry(templateRecord)
             proceduralEntries.add(newEntry)
         }
     }
     override fun getRecords(): List<LoggableTemplate>{
-        val result =  proceduralEntries.flatMap { it.proceduralRecords }
+        val result =  proceduralEntries.flatMap { it.records }
         return result
     }
     override fun getRecord(action : TemplateActions):LoggableTemplate{
@@ -235,13 +226,15 @@ class ProceduralRecord(
     override fun toString(): String = "ProceduralRecord [Source message: ${text}]"
 
     companion object: PrintableCompanion<ProceduralRecord>(TypeToken.create()){
+
+
         val Start: Template<ProceduralRecord> = createTemplate {
             nextLine {
                 val name =  ClassResolver.instanceName(context)
                 val resultingText = "[${name} @ ${created.hoursFormated(3)}] [$subject]".colorize(Colour.Blue).newLine {
-                    text.stringify(IndentOptions(currentIndentLevel, " ", colour = Colour.BlackBright)).formatedString
+                    text.stringify().toString()
                 }
-                resultingText.stringify(IndentOptions(currentIndentLevel, " ")).formatedString
+                resultingText.stringify().toString()
             }
         }
         val Result: Template<ProceduralRecord> = createTemplate {
@@ -251,7 +244,7 @@ class ProceduralRecord(
                     ProceduralResult.Warning -> "$resultText ${"Warning $resultPostfix".colorize(Colour.Yellow)}"
                     ProceduralResult.Fail -> "$resultText ${"Fail $resultPostfix".colorize(Colour.Red)}"
                 }
-                resultingText.stringify(IndentOptions(currentIndentLevel, " ")).formatedString
+                resultingText.stringify().toString()
             }
         }
     }

@@ -1,7 +1,6 @@
 package po.misc.types.token
 
 import po.misc.context.tracable.TraceableContext
-import po.misc.types.token.TypeToken.CreateOptions
 import kotlin.reflect.KClass
 
 interface TokenFactory
@@ -15,8 +14,8 @@ interface TokenFactory
  *
  * @return a new [TypeToken] representing type [T].
  */
-inline fun <reified T> TokenFactory.tokenOf(options:  CreateOptions? = null): TypeToken<T>{
-    return TypeToken.create<T>(options)
+inline fun <reified T> TokenFactory.tokenOf(): TypeToken<T>{
+   return  TypeToken<T>()
 }
 
 /**
@@ -34,9 +33,15 @@ inline fun <reified T> TokenFactory.tokenOf(options:  CreateOptions? = null): Ty
  * @param baseClass the declared upper type that the resulting token should represent.
  * @return a new [TypeToken] representing [T], backed by concrete type [GT].
  */
-inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, options:  CreateOptions? = null): TypeToken<T>{
-  return TypeToken.create<T, GT>(baseClass, options)
+@Deprecated("Remove")
+inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>): TypeToken<T>{
+  return TypeToken.create<T, GT>(baseClass)
 }
+
+inline fun <reified T: TokenFactory> T.toToken(): TypeToken<T>{
+    return  TypeToken<T>()
+}
+
 
 /**
  * Creates a [TypeToken] for a [TraceableContext] implementation [T].
@@ -49,21 +54,5 @@ inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, o
  */
 inline fun <reified T: TraceableContext> T.toToken(): TypeToken<T>{
     return TypeToken.create<T>()
-}
-
-/**
- * Creates a [TypeToken] for a [TraceableContext] base type [T], using the
- * receiver [GT] as the concrete runtime subtype and [baseClass] as the declared base type.
- *
- * Useful in more advanced scenarios where a context instance must report itself
- * under a parent type, for example when working with tracing, logging, or DI systems
- * requiring polymorphic handling.
- *
- * @receiver the concrete context instance of subtype [GT].
- * @param baseClass the declared base type for the generated token.
- * @return a new [TypeToken] representing [T], backed by concrete type [GT].
- */
-inline fun <reified T: TraceableContext, reified GT: T> GT.toToken(baseClass: KClass<T>): TypeToken<T>{
-    return TypeToken.create<T, GT>(baseClass)
 }
 

@@ -1,6 +1,7 @@
 package po.misc.data.helpers
 
-import kotlin.text.StringBuilder
+import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.TextStyler
 import kotlin.text.replaceFirstChar
 
 
@@ -55,38 +56,9 @@ fun <T> T?.orDefault(replacementText: String = "", transform: (T) -> String ): S
     }
 }
 
-
 fun Char?.orDefault(replacementChar: Char = ' '): Char{
     return this ?: replacementChar
 }
-
-
-
-fun String.wrapByDelimiter(
-    delimiter: String,
-    maxLineLength: Int = 100
-): String {
-    val parts = this.split(delimiter).map { it.trim() }
-    val result = StringBuilder()
-    var currentLine = StringBuilder()
-
-    for (part in parts) {
-        val candidate = if (currentLine.isEmpty()) part else "${currentLine}$delimiter $part"
-        if (candidate.length > maxLineLength) {
-            result.appendLine(currentLine.toString().trim())
-            currentLine = StringBuilder( "$part $delimiter" )
-        } else {
-            if (currentLine.isNotEmpty()) currentLine.append(" $delimiter ")
-            currentLine.append(part)
-        }
-    }
-
-    if (currentLine.isNotEmpty()) {
-        result.appendLine(currentLine.toString().trim())
-    }
-    return result.toString()
-}
-
 
 fun String.applyIfNotEmpty(block:String.()-> String): String{
     if(this.isNotEmpty()){
@@ -105,25 +77,24 @@ fun <T: Any> T?.toStringIfNotNull(textIfNull: String? = null , builder:(T)-> Str
 
 fun String.stripAfter(char: Char): String = substringBefore(char)
 
-
-fun <T> Iterable<T>.joinWithIndent(
-    count: Int,
-    indentChar: CharSequence = " ",
-    separator: CharSequence = ", ",
-    prefix: CharSequence = "",
-    postfix: CharSequence = "",
-    limit: Int = -1,
-    truncated: CharSequence = "...",
-    transform: ((T) -> CharSequence)? = null
-): String {
-   return joinToString(separator, prefix, postfix, limit, truncated, transform).withIndent(count, indentChar)
-}
-
-
-
 fun String.firstCharUppercase(): String{
     return replaceFirstChar { it.uppercase() }
 }
+
+fun String.repeat(times: Int, separator: String = SpecialChars.EMPTY): String {
+    val result = mutableListOf<String>()
+    repeat(times){
+        result.add(this)
+    }
+    return result.joinToString(separator)
+}
+
+val String.lengthNoAnsi: Int get() {
+    val text = TextStyler.ansi.stripAnsi(this)
+  return  text.length
+}
+
+
 
 
 

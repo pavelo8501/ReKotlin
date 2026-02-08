@@ -13,7 +13,7 @@ class CompareInstances(
     val instanceInfo2: InstanceInfo
 ): PrettyPrint {
 
-    val isSameInstance : Boolean = instanceInfo1.instanceHash == instanceInfo2.instanceHash
+    val isSameInstance : Boolean = instanceInfo1.hash == instanceInfo2.hash
     private val equalityText: String get() {
        return if(isSameInstance){
             " is same instance as ".colorize(Colour.Green)
@@ -24,17 +24,17 @@ class CompareInstances(
 
     private val instance1Hash : String get() {
        return  if(isSameInstance){
-            instanceInfo1.instanceHash.stringify(Colour.Green).formatedString
+            instanceInfo1.hash.stringify(Colour.Green).styled
         }else{
-            instanceInfo1.instanceHash.stringify(Colour.Red).formatedString
+            instanceInfo1.hash.stringify(Colour.Red).styled
         }
     }
 
     private val instance2Hash : String get() {
         return  if(isSameInstance){
-            instanceInfo2.instanceHash.stringify(Colour.Green).formatedString
+            instanceInfo2.hash.stringify(Colour.Green).styled
         }else{
-            instanceInfo2.instanceHash.stringify(Colour.Red).formatedString
+            instanceInfo2.hash.stringify(Colour.Red).styled
         }
     }
 

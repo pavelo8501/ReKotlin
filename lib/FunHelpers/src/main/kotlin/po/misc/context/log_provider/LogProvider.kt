@@ -10,11 +10,9 @@ import po.misc.data.logging.processor.LogProcessor
 import kotlin.reflect.KClass
 
 
-
 interface LogProvider : Component {
 
     val logProcessor: LogProcessor<out LogProvider, out StructuredLoggable>
-
 
     override fun notify(logMessage: LogMessage): StructuredLoggable{
         logProcessor.loader.loaderRoutine()

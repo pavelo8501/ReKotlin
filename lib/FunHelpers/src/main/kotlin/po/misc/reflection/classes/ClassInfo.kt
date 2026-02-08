@@ -1,6 +1,5 @@
 package po.misc.reflection.classes
 
-import po.misc.types.isNull
 import kotlin.Boolean
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
@@ -68,10 +67,9 @@ inline fun <T: Any> T.overallInfo(
     role:ClassRole,
     block: ClassInfo<T>.(T)-> Unit
 ):ClassInfo<T>{
-   val  clazz : KClass<out T> = this::class
+    val clazz : KClass<out T> = this::class
     val isFunction : Boolean =  clazz.isFun
     val simpleName: String = clazz.simpleName.toString()
-    val isNullable: Boolean = clazz::class.isNull()
     val info = ClassInfo<T>(
         classRole = role,
         simpleName = simpleName,

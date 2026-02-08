@@ -151,8 +151,8 @@ class TestHostedEvent: EventHost {
         event.onEvent(listener2, LambdaOptions.Listen){
 
         }
-        val namedPromise = assertNotNull( event.listeners.values.first { it.options ==   SuspendedOptions.Promise} )
-        val generatedListen = assertNotNull( event.listeners.values.first { it.options ==  LambdaOptions.Listen } )
+        val namedPromise = assertNotNull( event.listenersMap.listeners.first { it.options ==   SuspendedOptions.Promise} )
+        val generatedListen = assertNotNull( event.listenersMap.listeners.first { it.options ==  LambdaOptions.Listen } )
         assertTrue {
             namedPromise.lambdaName.contains(promise.name?:"Failure") &&
                     generatedListen.lambdaName.contains("HostedEvent named lambdas")

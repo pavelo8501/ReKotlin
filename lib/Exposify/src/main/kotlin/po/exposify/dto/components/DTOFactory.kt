@@ -20,9 +20,9 @@ import po.misc.context.CTX
 import po.misc.context.CTXIdentity
 import po.misc.context.asIdentity
 import po.misc.context.asSubIdentity
+import po.misc.data.NameValue
 import po.misc.functions.registries.TaggedRegistry
 import po.misc.functions.registries.builders.taggedRegistryOf
-import po.misc.interfaces.ValueBased
 import po.misc.serialization.SerializerInfo
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KType
@@ -32,7 +32,7 @@ sealed class DTOFactoryBase<DTO, D, E>(
 ) : TasksManaged where DTO : ModelDTO, D : DataModel, E : LongEntity {
     enum class Events(
         override val value: Int,
-    ) : ValueBased {
+    ) : NameValue {
         OnCreated(1),
         OnInitialized(2),
     }

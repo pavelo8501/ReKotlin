@@ -1,11 +1,21 @@
 package po.misc.data.pretty_print.formatters.text_modifiers
 
-
+import po.misc.data.pretty_print.formatters.FormatterTag
+import po.misc.data.pretty_print.formatters.StyleFormatter
+import po.misc.data.pretty_print.parts.cells.RenderRecord
+import po.misc.data.pretty_print.parts.render.StyleParameters
 import po.misc.data.styles.Colour
 import po.misc.data.styles.applyColour
+import po.misc.data.text_span.EditablePair
+import po.misc.data.text_span.MutableSpan
 
 
-open class ColorModifier(vararg val conditions: ColourCondition): TextModifier {
+open class ColorModifier(
+    vararg val conditions: ColourCondition
+): StyleFormatter {
+
+    override val dynamic: Boolean = false
+    override val tag : FormatterTag = FormatterTag.ColorModifier
     var provider: (()-> Colour?)? = null
 
     constructor(colourProvider: ()-> Colour?):this()
@@ -17,7 +27,7 @@ open class ColorModifier(vararg val conditions: ColourCondition): TextModifier {
     ){
         enum class Match{Partially, Exactly}
     }
-    override val priority: Int = 1
+
     private val conditionsList: MutableList<ColourCondition> = mutableListOf()
 
     init {
@@ -47,13 +57,22 @@ open class ColorModifier(vararg val conditions: ColourCondition): TextModifier {
         }
         return text
     }
-    override fun modify(text: String): String {
+
+    fun modify(text: String): String {
         val useProvider = provider
         return if(useProvider != null){
             modifyWithProvider(text, useProvider)
         }else{
             modifyByConditions(text, conditionsList)
         }
+    }
+    override fun modify(mutableSpan: MutableSpan, styleParameters: StyleParameters) {
+        val modified =  modify(mutableSpan.plain)
+        mutableSpan.change(modified)
+    }
+
+    override fun modify(record: RenderRecord, styleParameters: StyleParameters) {
+        TODO("Not yet implemented")
     }
 }
 

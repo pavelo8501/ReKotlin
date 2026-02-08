@@ -1,6 +1,6 @@
 package po.misc.exceptions.handling
 
-import po.misc.exceptions.stack_trace.ExceptionTrace
+import po.misc.debugging.stack_tracer.ExceptionTrace
 import kotlin.reflect.KClass
 
 

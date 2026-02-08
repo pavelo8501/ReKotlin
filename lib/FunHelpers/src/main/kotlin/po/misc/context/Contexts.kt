@@ -5,6 +5,7 @@ import po.misc.data.logging.LogEmitter
 import po.misc.data.styles.SpecialChars
 import po.misc.exceptions.ContextTracer
 import po.misc.context.tracable.TraceableContext
+import po.misc.exceptions.Tracer
 import po.misc.exceptions.models.CTXResolutionFlag
 import po.misc.types.token.TypeToken
 
@@ -53,7 +54,7 @@ interface CTX : LogEmitter, TraceableContext {
         "Most common reason is initialization of identity dependant properties in abstract class"
        @Suppress("USELESS_ELVIS")
        return identity?:run {
-          val trace = ContextTracer(this,  CTXResolutionFlag.NoResolution, errorMsg)
+          val trace = Tracer(errorMsg)
            trace.output()
            CTXIdentity(TypeToken.create<CTX>(),  0)
        }

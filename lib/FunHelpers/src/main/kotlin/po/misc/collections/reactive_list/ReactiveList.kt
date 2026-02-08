@@ -1,7 +1,7 @@
 package po.misc.collections.reactive_list
 
-import po.misc.collections.lambda_map.CallableWrapper
-import po.misc.collections.lambda_map.Lambda
+import po.misc.collections.lambda_list.LambdaWrapper
+
 import po.misc.context.tracable.TraceableContext
 import po.misc.debugging.ClassResolver
 import kotlin.collections.forEach
@@ -9,8 +9,8 @@ import kotlin.collections.forEach
 
 open class ReactiveList<T: Any, R>(
     val options: Options? = null,
-    val onNewEntry: CallableWrapper<T, Unit>,
-    vararg lambdas : CallableWrapper<T, R>
+    val onNewEntry: (T) -> Unit,
+    vararg lambdas : LambdaWrapper<T, R>
 ): AbstractMutableList<T>() {
 
     data class Options(
@@ -21,8 +21,6 @@ open class ReactiveList<T: Any, R>(
         private val formattedClassName: String = ClassResolver.classInfo(ReactiveList::class).formattedClassName
         val name: String = "$formattedClassName on ${ClassResolver.instanceName(host)}"
     }
-
-    constructor(options: Options?, lambda: (T) -> Unit):this(options, Lambda(lambda))
 
 
     var sideEffects: Boolean

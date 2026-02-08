@@ -1,24 +1,46 @@
 package po.misc.types.k_class
 
 
+import po.misc.debugging.ClassResolver
+import po.misc.exceptions.throwableToText
+import po.misc.types.ClassAware
+import po.misc.types.ReflectiveLookup
+import po.misc.types.safeCast
+import po.misc.types.token.GenericInfo
+import po.misc.types.token.TypeSlot
+import po.misc.types.token.TypeToken
+import po.misc.types.token.asTAndAny
+import java.beans.Visibility
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty
+import kotlin.reflect.KProperty1
+import kotlin.reflect.KType
+import kotlin.reflect.KVisibility
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.typeOf
 
-data class KClassParam(
-    val simpleName : String,
-    val qualifiedName: String,
-    val hashCode: Int,
-    val typeParameters: Int
-){
-    override fun toString(): String {
-        return buildString {
-            appendLine("Simple Name: $simpleName")
-            appendLine("Qualified Name: $qualifiedName")
-            appendLine("Hash Code: $hashCode")
-            appendLine("Type Parameters Count: $typeParameters")
-        }
+
+@PublishedApi
+internal fun <T>  KClass<*>.asDefinitelyNotNull(): KClass<T & Any>{
+    @Suppress("UNCHECKED_CAST")
+    val kClass = this as? KClass<T & Any>
+    if (kClass != null){
+        return kClass
+    }else{
+        throw IllegalArgumentException("${this.qualifiedName} cannot be cast to <T & Any>")
     }
 }
 
+@PublishedApi
+internal fun <T> KClass<*>.checkDefinitelyNotNull(): KClass<T & Any>?{
+    try {
+        @Suppress("UNCHECKED_CAST")
+        return this as? KClass<T & Any>
+    }catch (e: Throwable){
+        return null
+    }
+}
 
 
 /**
@@ -66,9 +88,41 @@ fun KClass<*>.computeHierarchy(
                 result += klass
                 klass.supertypes.firstNotNullOfOrNull { it.classifier as? KClass<*> }
             }
-
         if (current == null || current == stopBefore) return result
     }
     return result
 }
+
+
+fun <T: Any>  KClass<*>.readAllProperties(receiver: T): List<String>{
+    val result = mutableListOf<String>()
+
+    this.memberProperties.forEach {prop->
+        try {
+            prop.safeCast<KProperty1<T, Any>>()?.let {casted->
+                casted.visibility?.let {
+                   if(it == KVisibility.PUBLIC){
+                       result.add("${casted.name}: ${casted.get(receiver)}")
+                   }
+                }
+            }
+        }catch (e: Throwable){
+            result.add( "readAllProperties -> ${e.throwableToText()}")
+        }
+    }
+    return result
+}
+
+class KClassAware<T> @PublishedApi internal constructor(override val kClass: KClass<T & Any>): ClassAware<T>
+
+@PublishedApi
+internal val <T: Any> KClass<T>.asClasAware : KClassAware<T> get() = KClassAware(this)
+
+
+@PublishedApi
+internal inline fun <reified T> clasAware(): ClassAware<T>{
+   return KClassAware(T::class.asTAndAny())
+}
+
+
 

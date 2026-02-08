@@ -1,12 +1,12 @@
 package po.misc.dsl.configurator
 
-import po.misc.data.HasNameValue
-import po.misc.data.TextContaining
+import po.misc.interfaces.named.KeyedValue
+import po.misc.interfaces.named.TextContaining
 
 
 internal fun  TextContaining.generateName(): String{
    return when(val value =  this){
-        is HasNameValue -> value.asText()
+        is KeyedValue -> value.asText()
         else -> "Group # ${value.asText()}"
     }
 }

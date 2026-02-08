@@ -1,20 +1,25 @@
 package po.misc.callbacks.signal
 
 import po.misc.callbacks.CallableEventBase
+import po.misc.callbacks.common.ListenerResult
 import po.misc.callbacks.validator.ReactiveValidator
+import po.misc.collections.lambda_map.Lambda
+import po.misc.collections.lambda_map.LambdaWrapper
 import po.misc.collections.lambda_map.toCallable
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.context.component.ComponentID
-import po.misc.data.logging.StructuredLoggable
+import po.misc.counters.DataRecord
+import po.misc.data.PrettyPrint
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.processor.LogProcessor
 import po.misc.data.logging.processor.createLogProcessor
-import po.misc.data.output.outputDispatcher
-import po.misc.data.strings.ifNotBlank
+import po.misc.data.strings.appendGroup
 import po.misc.functions.LambdaOptions
 import po.misc.functions.LambdaType
+import po.misc.functions.Suspended
 import po.misc.functions.SuspendedOptions
+import po.misc.functions.Sync
 import po.misc.types.token.TypeToken
 
 
@@ -69,9 +74,11 @@ import po.misc.types.token.TypeToken
  * @param T the type of value delivered to listeners
  * @param R the type of value returned by listeners
  */
-sealed interface SignalBuilder<T: Any, R>{
+sealed interface SignalBuilder<T, R>{
 
     private val signal: Signal<T, R> get() = this as Signal
+
+    var signalName:String
 
     /**
      * Assigns a human-readable name to this signal.
@@ -90,6 +97,7 @@ sealed interface SignalBuilder<T: Any, R>{
         signal.componentID = componentID
         return componentID
     }
+
 
     /**
      * Registers a synchronous listener associated with the signal itself
@@ -111,10 +119,10 @@ sealed interface SignalBuilder<T: Any, R>{
     /**
      * Registers a suspending listener associated with the signal itself.
      *
-     * The [LambdaType.Suspended] marker is required to disambiguate
+     * The [Suspended] marker is required to disambiguate
      * overload resolution between suspending and non-suspending callbacks.
      */
-    fun onSignal(suspended: LambdaType.Suspended, callback: suspend (T)-> R)
+    fun onSignal(suspended: Suspended, callback: suspend (T)-> R)
 
     /**
      * Registers a suspending listener bound to a specific context and
@@ -123,15 +131,13 @@ sealed interface SignalBuilder<T: Any, R>{
     fun onSignal(listener: TraceableContext, options: SuspendedOptions, callback: suspend (T) -> R)
 
     /**
-     * Variant of suspending listener registration using [LambdaType.Suspended]
+     * Variant of suspending listener registration using [Suspended]
      * to explicitly select the suspending overload in ambiguous contexts.
      */
-    fun onSignal(listener: TraceableContext, suspended: LambdaType.Suspended, callback: suspend (T) -> R)
+    fun onSignal(listener: TraceableContext, suspended: Suspended, callback: suspend (T) -> R)
 
     fun withValidation(predicate: (T)-> Boolean):ReactiveValidator<T>{
-        return with(signal){
-            registerValidator(ReactiveValidator(predicate))
-        }
+       return ReactiveValidator(predicate)
     }
 }
 
@@ -151,17 +157,32 @@ sealed interface SignalBuilder<T: Any, R>{
  * @param T the payload type passed to listeners when the signal is triggered
  * @param R the result type returned by each listener
  */
-class Signal<T: Any, R>(
+class Signal<T, R>(
    paramType: TypeToken<T>,
    resultType: TypeToken<R>,
    val options: SignalOptions? = null
-): CallableEventBase<T, R>(), SignalBuilder<T, R>{
+): CallableEventBase<T, Unit,  R>(), SignalBuilder<T, R>{
 
-    val signalName: String = if(options == null){
-        "Signal"
-    }else{
-        "Signal[${options.name}] ${options.hostName.ifNotBlank { "on $it" }}"
+    class SignalData(
+        private val signal :Signal<*, *>
+    ): PrettyPrint{
+        val name : String = signal.signalName
+        val signalsCount: Int = signal.listenersMap.lambdaMap.size
+        val suspendedCount : Int = signal.listenersMap.suspendedMap.size
+        val subscriptionsCount : Int = signalsCount + suspendedCount
+        val journalRecords : List<DataRecord> = signal.journal.records
+        override val formattedString: String get() = buildString {
+            appendGroup("SignalData[$name", "]", ::signalsCount, ::suspendedCount, ::subscriptionsCount)
+        }
+        override fun toString(): String  = "SignalData[$name]"
     }
+
+    override var signalName:String = "Signal"
+        set(value) {
+            val signalName = "Signal of $value"
+            field = signalName
+            eventName = signalName
+        }
 
     override var componentID: ComponentID = ComponentID(this, setName =  signalName)
         .addParamInfo("T", paramType)
@@ -169,12 +190,22 @@ class Signal<T: Any, R>(
 
     val logProcessor: LogProcessor<Signal<T, R>, LogMessage> = createLogProcessor()
 
-    val signal : Boolean get() = listeners.values.any { !it.isSuspended }
-    val signalSuspended: Boolean get() =  listeners.values.any { it.isSuspended }
+    var signal: Boolean = false
+    private set
+
+    var signalSuspended: Boolean = false
+    private set
 
     init {
-        listeners.onKeyOverwritten = {
+        listenersMap.onKeyOverwritten = {
             warn(subjectKey, messageKey(it) )
+        }
+    }
+
+    override fun listenersApplied(lambdaType: LambdaType) {
+        when(lambdaType){
+            is Sync -> signal = true
+            is Suspended -> signalSuspended = true
         }
     }
 
@@ -187,8 +218,9 @@ class Signal<T: Any, R>(
         options: LambdaOptions,
         callback: (T) -> R
     ){
+        signal = true
         debug(subjectListen, messageReg("Lambda", listener) )
-        listeners[listener] = callback.toCallable(options)
+        listenersMap[listener] = Lambda(options, callback)
     }
 
     /**
@@ -234,8 +266,9 @@ class Signal<T: Any, R>(
         options: SuspendedOptions,
         callback: suspend (T) -> R
     ){
-        debug( subjectListen, messageReg("Suspending lambda", listener) )
-        listeners[listener] = toCallable(options, callback)
+        signalSuspended = true
+        debug(subjectListen, messageReg("Suspending lambda", listener) )
+        listenersMap[listener] = toCallable(options, callback)
     }
 
     /**
@@ -248,7 +281,7 @@ class Signal<T: Any, R>(
      */
     override fun onSignal(
         listener: TraceableContext,
-        suspended: LambdaType.Suspended,
+        suspended: Suspended,
         callback: suspend (T) -> R
     ) : Unit = onSignal(listener, SuspendedOptions.Listen, callback)
 
@@ -262,16 +295,30 @@ class Signal<T: Any, R>(
      * to avoid overwriting and allow multiple independent subscriptions.
      */
     override fun onSignal(
-        suspended: LambdaType.Suspended,
+        suspended: Suspended,
         callback: suspend (T) -> R
     ) : Unit = onSignal(this, SuspendedOptions.Listen, callback)
 
+    fun trigger(value:T): List<ListenerResult<R>> = super.trigger(value, Unit)
+    fun trigger(listener: TraceableContext, value:T): R? = super.trigger(listener, value, Unit)
+
+    suspend fun trigger(value:T, suspended: Suspended):  List<ListenerResult<R>> =
+        super.trigger(value, Unit, suspended)
+
+    suspend fun trigger(listener: TraceableContext, value:T, suspended: Suspended): R? =
+        super.trigger(listener, value, Unit, suspended)
 
     override fun notify(logMessage: LogMessage): LogMessage {
         logProcessor.logData(logMessage)
         return logMessage
     }
+    fun initializeBy(other: Signal<T, R>){
+        listenersMap = other.listenersMap
+    }
+
+    fun info(): SignalData{
+        return SignalData(this)
+    }
 
     override fun toString(): String = signalName
-
 }

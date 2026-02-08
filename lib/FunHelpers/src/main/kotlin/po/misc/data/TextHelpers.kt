@@ -1,12 +1,12 @@
 package po.misc.data
 
-import po.misc.data.strings.FormatedEntry
 import po.misc.data.strings.stringify
 import po.misc.data.strings.stringifyList
+import po.misc.data.text_span.TextSpan
 
-inline fun <T: Any, R> T.messageAssembler(vararg parts: Any,  block: T.(FormatedEntry) -> R):R{
+inline fun <T: Any, R> T.messageAssembler(vararg parts: Any,  block: T.(TextSpan) -> R):R{
    val asList = parts.toList()
-    var resultEntry : FormatedEntry? = null
+    var resultEntry : TextSpan? = null
     if(asList.size == 1){
         val first = asList.first()
         resultEntry = if(first is Array<*>){

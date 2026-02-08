@@ -20,7 +20,7 @@ fun <C: HoconResolvable<C>> applyConfig(
 ): C {
     eventBuilder?.let {
         it.invoke(config.resolver.events)
-        "config.resolver.events listeners size: ${config.resolver.events.onComplete.listeners.size}".output()
+        "config.resolver.events listeners size: ${config.resolver.events.onComplete.listenersMap.size}".output()
     }
     config.resolver.readConfig(factory)
     return config

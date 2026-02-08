@@ -4,7 +4,6 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.exceptions.ManagedException
 import po.misc.types.getOrThrow
 
-
 inline fun <R> String?.whenIsLong(action:(Long)->R):R?{
     if(this != null){
      return  toLongOrNull()?.let {
@@ -41,4 +40,9 @@ inline fun <T: TraceableContext, R> T.longOrManaged(param1:String?, param2:Strin
     }
    return action.invoke(this, param1Long, param1Long)
 
+}
+
+
+fun Int?.coerceAtLeast(minimum: Int): Int {
+    return this?.coerceAtLeast(minimumValue =  minimum) ?: minimum
 }
