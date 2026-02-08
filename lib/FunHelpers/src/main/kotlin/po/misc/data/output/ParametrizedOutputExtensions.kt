@@ -4,6 +4,7 @@ import po.misc.data.helpers.orDefault
 import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
+import po.misc.data.styles.StyleCode
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.models.InstanceInfo
@@ -31,7 +32,6 @@ fun Any.output(
     prefix: String? = null
 ){
     checkDispatcher()
-
     fun stringifyReceiver(receiver: Any):String{
        return when (receiver) {
             is List<*> -> {
@@ -82,11 +82,11 @@ fun Any.output(
     }
 }
 
-fun <T: Any> T.output(pass:Pass, colour: Colour? = null): T {
-    outputInternal(this, colour = colour)
+fun <T: Any> T.output(pass:Pass, styleCode: StyleCode? = null): T {
+    Output(null,  this, styleCode =  styleCode).printAll()
     return this
 }
-fun <T: Any, R> T.output(pass:Pass,  colour: Colour? = null, selector: T.() ->R): R {
-    outputInternal(this, colour = colour)
+fun <T: Any, R> T.output(pass:Pass,  styleCode: StyleCode? = null, selector: T.() ->R): R {
+    Output(null, this, styleCode =  styleCode).printAll()
     return selector(this)
 }

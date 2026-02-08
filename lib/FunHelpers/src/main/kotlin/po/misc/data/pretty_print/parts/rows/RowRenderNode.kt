@@ -8,8 +8,11 @@ import po.misc.data.pretty_print.cells.StaticRenderingCell
 import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.options.InnerBorders
 import po.misc.data.pretty_print.parts.options.Options
-import po.misc.data.pretty_print.parts.rendering.CellParameters
+import po.misc.data.pretty_print.parts.render.CellParameters
+import po.misc.data.pretty_print.parts.render.LayerType
+import po.misc.data.pretty_print.parts.render.RenderCanvas
 import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.TextSpan
 import po.misc.types.token.Tokenized
 import po.misc.types.token.TypeToken
 
@@ -24,12 +27,11 @@ sealed class RowRenderNode<T>(
     protected val host: RowRenderPlanner<*>,
     override val index: Int,
     val totalCells: Int,
-    private val cell: RenderableCell<T>,
-):MetaProvider, CellParameters, Tokenized<T>{
+    private val cell: RenderableCell,
+):MetaProvider, CellParameters{
 
-    final override val typeToken: TypeToken<T> = cell.sourceType
     val innerBorders : InnerBorders = InnerBorders()
-    val options : Options get() = cell.currentRenderOpts
+    val options: Options get() = cell.renderOptions
 
     override val layout: Layout get() = host.keyParams.layout
     override var maxWidth: Int = options.width
@@ -37,7 +39,12 @@ sealed class RowRenderNode<T>(
     override val leftOffset: Int = 0
 
     val keySegmentSize: Int get() {
-        return (renderRecord.key?.plainLength?:0) + renderRecord.separator.displaySize
+        return when(val record = renderRecord){
+            is RenderRecord -> {
+                (record.key?.plainLength?:0) + record.separator.displaySize
+            }
+            else -> record.plainLength
+        }
     }
 
     override val metaText: String get() {
@@ -47,14 +54,16 @@ sealed class RowRenderNode<T>(
             appendLine("ContentWidth: $contentWidth ")
         }
     }
-    var renderRecord:RenderRecord = RenderRecord(MutablePair(), null, null)
+    var renderRecord:TextSpan = RenderRecord(MutablePair(), null, null)
+
+    var canvas: RenderCanvas = RenderCanvas(LayerType.Dynamic)
 
     var currentReceiver:T? = null
         private set
 
     override val contentWidth: Int get() = renderRecord.plainLength
 
-    val name: String = "$nodeName<$typeName> #$index"
+    val name: String = "$nodeName[$cell] #$index"
     val position : NodePosition get() {
         return when {
             totalCells == 1 -> NodePosition.SINGLE
@@ -64,9 +73,12 @@ sealed class RowRenderNode<T>(
         }
     }
 
-    abstract fun render(receiver: T): RenderRecord
+    abstract fun render(receiver: T): TextSpan
 
-    protected fun signalComplete(record : RenderRecord, receiver:T):RenderRecord{
+    protected fun signalComplete(record: TextSpan, receiver:T): TextSpan{
+        canvas.clear()
+
+        canvas.addSpan(record)
         renderRecord = record
         currentReceiver = receiver
         return record
@@ -95,14 +107,14 @@ class StaticRenderNode(
     val cell: StaticRenderingCell,
 ): RowRenderNode<Unit>("StaticRenderNode", host, index, totalCells, cell){
 
-    override fun render(receiver: Unit): RenderRecord{
+    override fun render(receiver: Unit): TextSpan{
         return with(cell){
-            val record = scopedRender(receiver)
+            val record = renderInScope()
             signalComplete(record, receiver)
         }
     }
-    fun render(receiver: Unit,  opts: Options):RenderRecord{
-        cell.currentRenderOpts = opts
+    fun render(opts: Options):TextSpan{
+        cell.renderOptions = opts
         return render(Unit)
     }
 }
@@ -114,14 +126,15 @@ class ValueRenderNode(
     val cell: AnyRenderingCell,
 ): RowRenderNode<Any>("ValueRenderNode", host, index, totalCells, cell){
 
-    override fun render(receiver: Any): RenderRecord{
+    override fun render(receiver: Any): TextSpan{
         return with(cell){
-            val record = scopedRender(receiver)
+            val record = renderInScope(receiver)
             signalComplete(record, receiver)
+
         }
     }
-    fun render(receiver: Any, opts: Options):RenderRecord {
-        cell.currentRenderOpts = opts
+    fun render(receiver: Any, opts: Options):TextSpan {
+        cell.renderOptions = opts
         return render(receiver)
     }
 }
@@ -131,16 +144,18 @@ class BoundRenderNode<T>(
     index: Int,
     totalCells: Int,
     val cell: SourceAwareCell<T>,
-): RowRenderNode<T>("BoundRenderNode", host,  index, totalCells, cell){
+): RowRenderNode<T>("BoundRenderNode", host,  index, totalCells, cell), Tokenized<T>{
 
-    override fun render(receiver: T): RenderRecord{
+    override val typeToken: TypeToken<T> = cell.sourceType
+
+    override fun render(receiver: T): TextSpan{
         return with(cell){
-            val record = scopedRender(receiver)
+            val record = renderInScope(receiver)
             signalComplete(record, receiver)
         }
     }
-    fun render(receiver: T,  opts: Options):RenderRecord{
-        cell.currentRenderOpts = opts
+    fun render(receiver: T,  opts: Options):TextSpan{
+        cell.renderOptions = opts
         return render(receiver)
     }
 }

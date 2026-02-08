@@ -1,7 +1,6 @@
 package po.misc.data.pretty_print.templates
 
 import po.misc.callbacks.callable.ReceiverCallable
-import po.misc.data.output.output
 import po.misc.data.pretty_print.Placeholder
 import po.misc.data.pretty_print.PrettyGridBase
 import po.misc.data.pretty_print.RenderableElement
@@ -16,8 +15,9 @@ import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.NamedTemplate
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.render.KeyParameters
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderParameters
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.types.token.TypeToken
@@ -94,7 +94,7 @@ class TemplatePlaceholder<T: Any>(
     var delegate: TemplateHost<T, T>? = null
 
     override val index: Int  get() = delegate?.index ?: 0
-    override val keyParameters: KeyRenderParameters get() = delegate?.keyParameters ?: KeyRenderParameters()
+    override val keyParameters: KeyParameters get() = delegate?.keyParameters ?: KeyParameters()
 
     override val renderableType: RenderableType = RenderableType.Row
 
@@ -130,7 +130,7 @@ class TemplatePlaceholder<T: Any>(
     }
     override fun renderFromSource(source: T, opts: CommonRowOptions? ): String = render(receiver =  source, opts)
 
-    override fun renderInScope(parameter: RenderParameters): RenderData{
+    override fun renderInScope(parameter: RenderParameters): RenderCanvas{
         TODO("Not implemented in TemplatePlaceholder. Need to decide if receiver can be obtained from upper container")
     }
 

@@ -6,6 +6,7 @@ import po.misc.context.component.ComponentID
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.text_span.StyledPair
 import po.misc.debugging.models.ClassInfo
+import po.misc.debugging.models.ClassMeta
 import po.misc.debugging.models.InstanceInfo
 import po.misc.debugging.models.InstanceMeta
 import po.misc.exceptions.extractTrace
@@ -20,26 +21,26 @@ interface ClassResolver {
 
     fun classInfo(receiver: Any, typeToken: TypeToken<*>? = null): ClassInfo = Companion.classInfo(receiver, typeToken)
 
-    open class  InstanceHelper{
+    fun Any.instanceMeta(): InstanceMeta = instanceMeta(this)
+
+    companion object{
 
         fun instanceMeta(anyInstance: Any?): InstanceMeta{
-
-           return anyInstance?.let {receiver->
-               val name = when(receiver){
+            return anyInstance?.let {receiver->
+                val name = when(receiver){
                     is NamedComponent ->{
-                       receiver.displayName
+                        receiver.styledName
                     }
-                   is Named->  StyledPair(receiver.name, receiver.name)
-                   else -> StyledPair(receiver::class.simpleOrAnon)
+                    is Named->  StyledPair(receiver.name, receiver.name)
+                    else -> StyledPair(receiver::class.simpleOrAnon)
                 }
-                InstanceMeta(name, receiver.hashCode(), receiver::class)
+                InstanceMeta(name.plain, receiver.hashCode(), ClassMeta(name.plain, emptyList()))
             }?:run {
-                InstanceMeta(StyledPair("Null"), 0, null)
+                InstanceMeta("Null", 0, ClassMeta("Null", emptyList()))
             }
         }
-    }
 
-    companion object : InstanceHelper() {
+
         fun instanceName(receiver: Any?): String {
             return when (receiver) {
                 is Component -> {
@@ -95,7 +96,6 @@ interface ClassResolver {
             val classInfo = classInfo(context)
             return InstanceInfo(name, context.hashCode(), classInfo)
         }
-
     }
 }
 

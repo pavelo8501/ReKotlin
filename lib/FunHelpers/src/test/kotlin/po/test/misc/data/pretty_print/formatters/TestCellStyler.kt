@@ -9,6 +9,7 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyle
 import po.misc.data.styles.TextStyler
 import po.misc.data.text_span.FormattedText
+import po.misc.data.text_span.MutablePair
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.text.contains
@@ -24,7 +25,7 @@ class TestCellStyler: TextStyler {
 
         val styledOptions = Options()
         styledOptions.style(TextStyle.Regular, Colour.Blue)
-        val formattedText = FormattedText(longerText)
+        val formattedText = MutablePair(longerText)
         styler.modify(formattedText, styledOptions)
         assertTrue { formattedText.styled.contains(longerText) && formattedText.styled.contains(Colour.Blue) }
         assertTrue { formattedText.plain.contains(longerText) &&  !formattedText.plain.isStyled }

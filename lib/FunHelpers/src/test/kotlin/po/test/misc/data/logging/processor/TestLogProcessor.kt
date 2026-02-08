@@ -5,7 +5,7 @@ import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.Verbosity
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
@@ -28,7 +28,7 @@ class TestLogProcessor: Component {
     override val componentID: ComponentID = componentID()
 
     //Override to jam Component's built in console output
-    override fun notify(subject: String, text: String, topic: NotificationTopic): Notification {
+    override fun notify(subject: String, text: String, topic: Topic): Notification {
        // this one -> notification.output()
        return Notification(this,  subject, text, topic)
     }
@@ -48,7 +48,7 @@ class TestLogProcessor: Component {
         componentID.verbosity = Verbosity.Debug
         val processor : LogProcessor<TestLogProcessor, LogMessage> = createLogProcessor()
 
-        val debug = notify("Some subject", notificationText, NotificationTopic.Debug)
+        val debug = notify("Some subject", notificationText, Topic.Debug)
         var capturedDebug = captureOutput {
             processor.logData(debug.toLogMessage())
         }
@@ -64,7 +64,7 @@ class TestLogProcessor: Component {
             capturedDebug.output.contains(notificationText)
         }
 
-        val info = notify("Info subject", notificationText, NotificationTopic.Info)
+        val info = notify("Info subject", notificationText, Topic.Info)
         var capturedInfo = captureOutput {
             processor.logData(info.toLogMessage())
         }
@@ -79,7 +79,7 @@ class TestLogProcessor: Component {
             capturedInfo.output.contains(notificationText)
         }
 
-        val warning = notify("Warning subject", notificationText, NotificationTopic.Warning)
+        val warning = notify("Warning subject", notificationText, Topic.Warning)
 
         var capturedWarning = captureOutput {
             processor.logData(warning.toLogMessage())
@@ -111,19 +111,19 @@ class TestLogProcessor: Component {
         val processor = createLogProcessor()
 
         componentID.verbosity = Verbosity.Warnings
-        val debug = notify(subject, notificationText, NotificationTopic.Debug)
+        val debug = notify(subject, notificationText, Topic.Debug)
         processor.logData(debug.toLogMessage())
-        assertNotNull(processor.logRecords.firstOrNull { it.topic == NotificationTopic.Debug })
+        assertNotNull(processor.logRecords.firstOrNull { it.topic == Topic.Debug })
 
         val info = notify(subject, notificationText)
         processor.logData(info.toLogMessage())
         assertEquals(2, processor.logRecords.size)
-        assertNotNull(processor.logRecords.firstOrNull { it.topic == NotificationTopic.Info })
+        assertNotNull(processor.logRecords.firstOrNull { it.topic == Topic.Info })
 
-        val warning = notify(subject, notificationText, NotificationTopic.Warning)
+        val warning = notify(subject, notificationText, Topic.Warning)
         processor.logData(warning.toLogMessage())
         assertEquals(3, processor.logRecords.size)
-        assertNotNull(processor.logRecords.firstOrNull { it.topic == NotificationTopic.Warning })
+        assertNotNull(processor.logRecords.firstOrNull { it.topic == Topic.Warning })
     }
 
     @Test
@@ -134,7 +134,7 @@ class TestLogProcessor: Component {
         var info = notify(subject, notificationText)
         processor.logData(info.toLogMessage())
         assertNotNull(intercepted)
-        assertNotNull(processor.logRecords.firstOrNull { it.topic === NotificationTopic.Info })
+        assertNotNull(processor.logRecords.firstOrNull { it.topic === Topic.Info })
 
     }
 

@@ -2,6 +2,7 @@ package po.test.misc.data.pretty_print.cells
 
 
 import org.junit.jupiter.api.assertDoesNotThrow
+import po.misc.data.logging.Verbosity
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.buildPrettyRow
@@ -16,12 +17,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.text.contains
 
-class TestComputedCell : PrettyTestBase(), TextStyler {
-
-    private var outputEnabled:Boolean = true
+class TestComputedCell: PrettyTestBase(), TextStyler {
 
     private var string = "Some string"
-
     fun giveString(source:TestComputedCell):String {
         return source.string
     }
@@ -37,7 +35,7 @@ class TestComputedCell : PrettyTestBase(), TextStyler {
         val record = createRecord()
         val subClassToString = record.subClass.toString()
         val render = cell.render(record)
-        render.output(outputEnabled)
+        render.output(verbosity)
         assertTrue { render.contains(subClassToString) }
         assertTrue { render.contains(ComputedCell.keyless.style.colour) }
     }
@@ -54,7 +52,7 @@ class TestComputedCell : PrettyTestBase(), TextStyler {
         val record = createRecord()
         val subClassFormattedString = record.subClass.formattedString
         val render = cell.render(record)
-        render.output(outputEnabled)
+        render.output(verbosity)
         assertTrue { render.contains(subClassFormattedString) }
         assertTrue { render.contains(Colour.Blue.code) }
     }
@@ -84,11 +82,11 @@ class TestComputedCell : PrettyTestBase(), TextStyler {
             parameter
         }
         var render = cell.render(this)
-        render.output(outputEnabled)
+        render.output(verbosity)
         assertTrue { render.contains(Colour.Magenta) }
         string = "Other string"
         render = cell.render(this)
-        render.output(outputEnabled)
+        render.output(verbosity)
         assertTrue { render.contains(string) }
         assertTrue { render.contains(Colour.Green) }
     }

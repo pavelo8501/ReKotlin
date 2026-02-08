@@ -14,9 +14,8 @@ interface TokenFactory
  *
  * @return a new [TypeToken] representing type [T].
  */
-inline fun <reified T> TokenFactory.tokenOf(options:  TokenOptions? = null): TypeToken<T>{
+inline fun <reified T> TokenFactory.tokenOf(): TypeToken<T>{
    return  TypeToken<T>()
-
 }
 
 /**
@@ -34,9 +33,15 @@ inline fun <reified T> TokenFactory.tokenOf(options:  TokenOptions? = null): Typ
  * @param baseClass the declared upper type that the resulting token should represent.
  * @return a new [TypeToken] representing [T], backed by concrete type [GT].
  */
-inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>, options: TokenOptions? = null): TypeToken<T>{
-  return TypeToken.create<T, GT>(baseClass, options)
+@Deprecated("Remove")
+inline fun <T, reified GT: T> TokenFactory.tokenOf(baseClass: KClass<T & Any>): TypeToken<T>{
+  return TypeToken.create<T, GT>(baseClass)
 }
+
+inline fun <reified T: TokenFactory> T.toToken(): TypeToken<T>{
+    return  TypeToken<T>()
+}
+
 
 /**
  * Creates a [TypeToken] for a [TraceableContext] implementation [T].

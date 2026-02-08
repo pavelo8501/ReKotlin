@@ -24,6 +24,14 @@ fun String.containsAnyOf(vararg substrings: String): Boolean {
 }
 
 
+fun String.takeLastOrNull(n: Int): String? {
+    val take = length - n.coerceAtMost(length)
+    if(take > length){
+        return null
+    }
+    return substring(take)
+}
+
 
 
 

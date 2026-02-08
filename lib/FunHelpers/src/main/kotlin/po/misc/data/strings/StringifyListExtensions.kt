@@ -2,6 +2,7 @@ package po.misc.data.strings
 
 import po.misc.data.styles.Colour
 import po.misc.data.text_span.FormattedText
+import po.misc.data.text_span.MutablePair
 import po.misc.data.text_span.TextSpan
 
 
@@ -12,14 +13,14 @@ internal fun buildStringCollection(
 ): TextSpan {
 
    return if(list.isNotEmpty()){
-        val rootEntry = list.first().stringify(colour) as FormattedText
+        val rootEntry = list.first().stringify(colour)
         list.drop(1).forEach {
-           val result =  it.stringify(colour) as FormattedText
+           val result =  it.stringify(colour)
           //  rootEntry.add(result)
         }
         rootEntry
     }else{
-       FormattedText("Empty")
+       MutablePair("Empty")
     }
 }
 

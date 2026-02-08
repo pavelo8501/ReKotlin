@@ -7,21 +7,14 @@ import po.misc.data.styles.StyleCode
 import po.misc.interfaces.named.Named
 
 
-interface EditablePair: MutableSpan {
+interface EditablePair{
 
-    val namedFormatted: List<NamedFormattedText>
-    val hasNamed:Boolean get() = namedFormatted.isNotEmpty()
-
-    val totalPlainLength: Int
-
+//    val namedFormatted: List<NamedFormattedText>
+//    val hasNamed:Boolean get() = namedFormatted.isNotEmpty()
+    
     fun appendPlain(text: String, separator:String = SpecialChars.EMPTY):EditablePair
     fun appendFormatted(text: String,  styleCode: StyleCode? = null,  separator:String = SpecialChars.EMPTY):EditablePair
 
-    fun append(pair :TextSpan, separator: String):EditablePair{
-        appendPlain(pair.plain, separator)
-        appendFormatted(pair.styled, null,  separator)
-        return this
-    }
     fun append(formatted :TextSpan, parameters: StringifyOptions):EditablePair{
         appendPlain(formatted.plain, parameters.separator)
         appendFormatted(formatted.styled, null,  parameters.separator)
@@ -47,31 +40,10 @@ interface EditablePair: MutableSpan {
         prependPlain(text, separator)
         prependFormatted(text, separator, styleCode)
     }
-
-
-    fun joinSubEntries(separator: String? = null):FormattedTextBase
-
-    fun joinSubEntries(separatorChar: Char):FormattedTextBase{
-        return joinSubEntries(separator = separatorChar.toString())
-    }
-    fun joinSubEntries(separator: ExtendedString):FormattedTextBase{
-        return joinSubEntries(separator = separator.text)
-    }
-
-    fun joinNamedEntries(namedList: List<Named>, separator: String? = null):EditablePair
-
-    fun joinNamedEntries(separator: String, vararg  names : Named):EditablePair {
-        return joinNamedEntries(namedList = names.toList(), separator = separator)
-    }
-    fun joinNamedEntries(vararg  names : Named):EditablePair {
-        return  joinNamedEntries(namedList = names.toList(), separator = null)
-    }
+//    fun joinSubEntries(separator: String? = null):FormattedTextBase
 
     fun write(plainString: String, formattedString: String):EditablePair
     fun writePlain(plainString: String):EditablePair
     fun writeFormatted(formattedString: String):EditablePair
 
-    fun getNamed(named: Named):NamedFormattedText?{
-        return namedFormatted.firstOrNull{ it.name == named }
-    }
 }

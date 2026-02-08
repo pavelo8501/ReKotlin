@@ -7,7 +7,7 @@ import po.misc.types.token.tokenOf
 import po.test.misc.data.pretty_print.setup.PrettyTest
 import kotlin.test.Test
 
-class TestRowRendering2 : PrettyTest<TestRowRendering2>(enableOutput =  true) {
+class TestRowRendering2 : PrettyTest<TestRowRendering2>() {
 
     override val receiverType: TypeToken<TestRowRendering2> = tokenOf()
 
@@ -22,6 +22,6 @@ class TestRowRendering2 : PrettyTest<TestRowRendering2>(enableOutput =  true) {
         val cell1 = ::text1.toCell()
         val cell2 = ::text2.toCell()
         val row = PrettyRow(cell1, cell2)
-        row.render(this).output(enableOutput)
+        row.render(this).output(testVerbosity)
     }
 }

@@ -1,6 +1,5 @@
 package po.misc.io
 
-import po.misc.functions.LambdaType
 import po.misc.functions.Nullable
 import po.misc.functions.Suspended
 import java.io.ByteArrayOutputStream
@@ -8,12 +7,18 @@ import java.io.PrintStream
 
 data class OutputResult<R>(
     val output:String,
-    val result:R,
+    val result:R?,
     val exception: Throwable? = null
 ){
+
     fun printOutput(){
+        print(output)
+    }
+    fun printLnOutput(){
         println(output)
     }
+
+    override fun toString(): String = output
 }
 
 inline fun <reified R> captureOutput(
@@ -22,11 +27,12 @@ inline fun <reified R> captureOutput(
     val originalOut = System.out
     val outputStream = ByteArrayOutputStream()
     System.setOut(PrintStream(outputStream))
-    try {
-        val result = captureLambda()
-        return OutputResult(outputStream.toString(), result)
-    }catch (th: Throwable){
-        throw th
+   return try {
+        val result = captureLambda.invoke()
+        OutputResult(outputStream.toString(), result)
+    } catch (th: Throwable) {
+        System.setOut(originalOut)
+        OutputResult(outputStream.toString(), null, th)
     }
     finally {
         System.setOut(originalOut)
@@ -34,7 +40,7 @@ inline fun <reified R> captureOutput(
 }
 
 
-inline fun <reified R: Any?> captureOutput(
+inline fun <reified R> captureOutput(
     nullable: Nullable,
     crossinline captureLambda: () -> R
 ): OutputResult<out R?> {

@@ -13,12 +13,13 @@ import po.misc.data.pretty_print.parts.rows.Layout
 import po.misc.reflection.displayName
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
+import po.test.misc.data.pretty_print.setup.PrettyTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-class TestRowRenderParams : Templated<TestRowRenderParams> {
+class TestRowRenderParams: PrettyTest<TestRowRenderParams>() {
 
     override val receiverType: TypeToken<TestRowRenderParams> = tokenOf()
 
@@ -36,7 +37,7 @@ class TestRowRenderParams : Templated<TestRowRenderParams> {
         val options = RowOptions(Orientation.Horizontal, Layout.Compact)
         val row = PrettyRow(options, staticCell1, prettyCell)
         val render =  row.renderAny(text2)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val lines = render.lines()
         assertEquals(2, row.planner.nodes.size)
         val staticNode =  assertIs<StaticRenderNode>(row.planner[0])
@@ -51,7 +52,7 @@ class TestRowRenderParams : Templated<TestRowRenderParams> {
         val options = RowOptions(Orientation.Horizontal, Layout.Stretch)
         val row = PrettyRow(options, staticCell1, prettyCell)
         val render =  row.renderAny(text2)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val lines = render.lines()
         val firsParam =  assertIs<StaticRenderNode>(row.planner.nodes.first())
         val secondParam =  assertIs<ValueRenderNode>(row.planner.nodes.last())
@@ -67,7 +68,7 @@ class TestRowRenderParams : Templated<TestRowRenderParams> {
         val options = RowOptions(Orientation.Horizontal, Layout.Compact)
         val row = PrettyRow<TestRowRenderParams>(options, listOf(prettyCell, keyedCell))
         val render =  row.renderAny(text2, this)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val lines = render.lines()
         val valueNode =  assertIs<ValueRenderNode>(row.planner[0])
         val boundNode =  assertIs<BoundRenderNode<TestRowRenderParams>>(row.planner[1])
@@ -95,7 +96,7 @@ class TestRowRenderParams : Templated<TestRowRenderParams> {
         val secundParam =  assertIs<BoundRenderNode<TestRowRenderParams>>(row.planner[1])
         val thirdParam =  assertIs<BoundRenderNode<TestRowRenderParams>>(row.planner[2])
         val render =  row.render(this)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val lines = render.lines()
         assertEquals(1, lines.size)
         assertTrue { lines[0].contains(text1) && lines[0].contains(text2)  && lines[0].contains(text3) }

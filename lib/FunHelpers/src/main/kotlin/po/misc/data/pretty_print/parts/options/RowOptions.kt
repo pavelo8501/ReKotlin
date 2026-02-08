@@ -1,8 +1,8 @@
 package po.misc.data.pretty_print.parts.options
 
 
+import po.misc.data.pretty_print.parts.common.BorderContainer
 import po.misc.data.pretty_print.parts.decorator.BorderPosition
-import po.misc.data.pretty_print.parts.common.BorderInitializer
 import po.misc.data.pretty_print.parts.common.TaggedSeparator
 import po.misc.data.pretty_print.parts.rows.Layout
 import po.misc.data.styles.SpecialChars
@@ -16,7 +16,7 @@ enum class Orientation(val separator: String){
 class RowOptions(
     override var orientation : Orientation,
     var layout: Layout = Layout.Compact,
-): CommonRowOptions, BorderInitializer {
+): CommonRowOptions, BorderContainer {
 
     constructor(
         orientation: Orientation,
@@ -81,14 +81,6 @@ class RowOptions(
         return this
     }
 
-//    fun exclude(list: List<RowID>?, includeUnnamed: Boolean = true): RowOptions {
-//        excludeFromRenderList = list ?: emptyList()
-//        renderUnnamed = includeUnnamed
-//        renderOnlyList = emptyList()
-//        edited = true
-//        return this
-//    }
-
     override fun asOptions(width: Int): Options = Options(this)
     override fun asRowOptions(): RowOptions = this
 
@@ -121,7 +113,7 @@ class RowOptions(
         return true
     }
     override fun hashCode(): Int {
-        var result = (orientation.hashCode() ?: 0)
+        var result = orientation.hashCode()
         result = 31 * result + layout.hashCode()
         result = 31 * result + plainKey.hashCode()
         result = 31 * result + orientation.hashCode()
@@ -142,9 +134,9 @@ class RowOptions(
             orientation : Orientation = Orientation.Horizontal,
             builderAction: RowOptions.() -> Unit
         ):RowOptions{
-            val row = RowOptions(orientation)
-            builderAction.invoke(row)
-            return row
+            val option = RowOptions(orientation)
+            builderAction.invoke(option)
+            return option
         }
     }
 

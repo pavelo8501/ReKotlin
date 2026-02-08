@@ -13,13 +13,20 @@ import po.misc.data.pretty_print.parts.common.TaggedDecorator
 import po.misc.data.pretty_print.parts.common.toSeparator
 import po.misc.data.pretty_print.parts.decorator.DecoratorBorder.BorderRender
 import po.misc.data.pretty_print.parts.options.Orientation
+import po.misc.data.pretty_print.parts.render.RenderRole
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.StyleCode
+import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.MutableSpan
 import po.misc.data.text_span.StyledPair
 import po.misc.data.text_span.TextSpan
 import po.misc.data.text_span.append
+import po.misc.data.text_span.appendCreating
+import po.misc.data.text_span.asMutable
 import po.misc.data.text_span.joinSpans
+import po.misc.data.text_span.joinSpansAs
 import po.misc.data.text_span.prepend
+import po.misc.data.text_span.prependCreating
 
 
 enum class BorderPosition(val orientation: Orientation){
@@ -42,7 +49,7 @@ class DecoratorBorder(
     initialStyle: StyleCode? = null
 ):RenderSchemeBuilder, RenderBuilder, TaggedDecorator<BorderPosition> {
 
-    class BorderRender internal constructor(val result: TextSpan)
+    class BorderRender internal constructor(val result: MutableSpan)
 
     data class Snapshot(
         val position: BorderPosition,
@@ -100,27 +107,28 @@ class DecoratorBorder(
             renderScheme.add(Separator(initialText, initialStyle))
         }
     }
-    private fun completeRender(times: Int?):TextSpan{
-       val result = renderScheme.mapNotNull { sep ->
+    private fun completeRender(times: Int?): MutableSpan{
+       val spans = renderScheme.mapNotNull { sep ->
             if(!sep.hasRepeat && times != null){
                  sep.toPair(times)
             }else{
                 sep.toPair()
             }
         }
-        return result.joinSpans(Orientation.Horizontal)
+        val result = spans.joinSpansAs<MutableSpan>(Orientation.Horizontal)
+        return result
     }
 
-    private fun renderInDSL(staticFirst: Boolean): TextSpan{
+    private fun renderInDSL(staticFirst: Boolean): MutableSpan{
         val repeat = tempRepeat
         val result =  if(staticFirst){
-            completeRender(repeat).prepend(tempMargin?:"")
+            completeRender(repeat).prependCreating(tempMargin?:"")
         }else{
-            completeRender(repeat).append(tempMargin?:"")
+            completeRender(repeat).appendCreating(tempMargin?:"")
         }
         tempMargin = null
         tempRepeat = null
-        return result
+        return result.asMutable()
     }
 
     override fun initBy(extendedString: ExtendedString): DecoratorBorder{
@@ -168,7 +176,7 @@ class DecoratorBorder(
         if(repeat <=0 ) return
         tempMargin =  this.repeat(repeat)
     }
-    override fun buildRender(buildAction: RenderBuilder.()->BorderRender): TextSpan{
+    override fun buildRender(buildAction: RenderBuilder.()->BorderRender): MutableSpan{
         val render = buildAction.invoke(this)
         return render.result
     }
@@ -183,8 +191,8 @@ class DecoratorBorder(
     fun snapshot():Snapshot{
         return Snapshot(position, displaySize, enabled, text, renderScheme.map { it.snapshot() } )
     }
-    fun toString(times: Int):String {
-        val pair = StyledPair()
+    fun toString(times: Int, role: RenderRole? = null):String {
+        val pair = MutablePair()
         completeRender(times)
         return pair.styled
     }

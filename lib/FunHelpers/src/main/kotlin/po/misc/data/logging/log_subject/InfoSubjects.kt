@@ -2,12 +2,12 @@ package po.misc.data.logging.log_subject
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.badges.Badge
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.debugging.ClassResolver
 import kotlin.reflect.KFunction
 
 interface InfoSubject: LogSubject{
-    override val topic: NotificationTopic get() = NotificationTopic.Info
+    override val topic: Topic get() = Topic.Info
 }
 
 object Initialization : SubjectBase(Badge.Init), InfoSubject{

@@ -17,7 +17,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestBorders: PrettyTest<TestBorders>(true){
+class TestBorders: PrettyTest<TestBorders>(){
 
     override val receiverType: TypeToken<TestBorders> =  tokenOf()
 
@@ -44,9 +44,9 @@ class TestBorders: PrettyTest<TestBorders>(true){
     @Test
     fun `Text wrap bottom border`() {
         val borders = Decorator(defaultName).addSeparator(bottomSeparator)
-        val wrapped = borders.decorate(text.toPair(), Decorator.Metrics(text.length))
+        val wrapped = borders.decorate(text.toPair(), Decorator.Metrics(text.length, 1))
         wrapped.output()
-        val lines = wrapped.render.plain.lines()
+        val lines = wrapped.lines
         assertEquals(2, lines.size)
     }
     @Test
@@ -55,10 +55,10 @@ class TestBorders: PrettyTest<TestBorders>(true){
         val pair = text.toPair()
         val wrapped = borders.decorate(pair, Decorator.Metrics(pair.plainLength))
         wrapped.output()
-        val lines = wrapped.lines()
+        val lines = wrapped.lines
         assertEquals(3, lines.size)
         assertTrue { lines[0].contains("*****") }
-        assertEquals(text, lines[1])
+        assertEquals(text, lines[1].plain)
         assertTrue { lines[2].contains("____") }
     }
     @Test
@@ -67,7 +67,7 @@ class TestBorders: PrettyTest<TestBorders>(true){
         val pair = text.toPair()
         val wrapped = borders.decorate(pair, Decorator.Metrics(pair.plainLength))
         wrapped.output()
-        val lines = wrapped.lines()
+        val lines = wrapped.lines
         assertEquals(3, lines.size)
         assertTrue { lines[0].contains("*****") }
         assertTrue { lines[1].contains(text) && lines[1].contains("|") }
@@ -77,9 +77,9 @@ class TestBorders: PrettyTest<TestBorders>(true){
     fun `Text wrap all borders`() {
         val rightSeparator = TaggedSeparator(BorderPosition.Right, "?")
         val borders = Decorator(defaultName, topSeparator, bottomSeparator, leftSeparator, rightSeparator)
-        val wrapped = borders.decorate(textPair, Decorator.Metrics(textPair.plainLength))
+        val wrapped = borders.decorate(textPair, Decorator.Metrics(textPair))
         wrapped.output()
-        val lines = wrapped.lines()
+        val lines = wrapped.lines
         assertEquals(3, lines.size)
         assertTrue { lines[0].contains("*****") && lines[0].contains("|") && lines[0].contains("?") }
         assertTrue { lines[1].contains(text) && lines[1].contains("|") && lines[1].contains("?") }

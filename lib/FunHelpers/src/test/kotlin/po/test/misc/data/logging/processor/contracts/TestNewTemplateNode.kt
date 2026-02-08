@@ -1,7 +1,7 @@
 package po.test.misc.data.logging.processor.contracts
 
 import org.junit.jupiter.api.Test
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.procedural.ProceduralFlow
 import po.misc.data.logging.procedural.ProceduralResult
 import po.misc.data.logging.procedural.StepResult
@@ -59,7 +59,7 @@ class TestNewTemplateNode: LoggerTestBase() {
 
         val foreignMessage = foreignContext.generateMessage("Foreign", "start")
         newNode.addRecord(foreignMessage)
-        val warnings = foreignContext.generateMessages("sub message", 2, NotificationTopic.Warning)
+        val warnings = foreignContext.generateMessages("sub message", 2, Topic.Warning)
         newNode.addRecords(warnings)
 
         val lastEntry = assertNotNull(procedural.proceduralEntries.lastOrNull())

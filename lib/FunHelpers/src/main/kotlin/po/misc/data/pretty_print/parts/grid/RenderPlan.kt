@@ -5,11 +5,12 @@ import po.misc.counters.SimpleJournal
 import po.misc.data.logging.Verbosity
 import po.misc.data.output.output
 import po.misc.data.pretty_print.*
-import po.misc.data.pretty_print.parts.common.RenderData
 import po.misc.data.pretty_print.parts.decorator.Decorator
 import po.misc.data.pretty_print.parts.options.RowOptions
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.render.KeyParameters
+import po.misc.data.pretty_print.parts.render.LayerType
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderParameters
 import po.misc.data.pretty_print.templates.TemplateCompanion
 import po.misc.data.pretty_print.templates.TemplatePlaceholder
 import po.misc.data.styles.Colour
@@ -43,7 +44,7 @@ import po.misc.types.token.safeCast
  */
 class RenderPlan <S, T>(
     val host: TemplateHost<S, T>,
-    val keyParams: KeyRenderParameters = KeyRenderParameters(),
+    val keyParams: KeyParameters = KeyParameters(),
     internal val renderBacking: MutableMap<RenderKey, RenderNode<T>> = mutableMapOf(),
 ): TokenizedResolver<S, T>, NamedComponent, RenderParameters by keyParams {
     private var orderCounter = -1
@@ -51,7 +52,7 @@ class RenderPlan <S, T>(
     override val receiverType:TypeToken<T> get() = host.receiverType
 
     override val name: String = "RenderPlan"
-    override val onBehalfName:TextSpan get() = host.displayName
+    override val onBehalfName:TextSpan get() = host.styledName
 
     internal val decorator: Decorator = Decorator()
     internal val journal = SimpleJournal(this::class)
@@ -145,8 +146,8 @@ class RenderPlan <S, T>(
         }
     }
 
-    fun render(receiver:T):RenderData{
-        val renderResult = mutableListOf<RenderData>()
+    fun render(receiver:T):RenderCanvas{
+        val renderResult = mutableListOf<RenderCanvas>()
         val nodes = getNodesOrdered()
         val nodesCount = nodes.size
         for(i in 0 until nodesCount){
@@ -155,16 +156,19 @@ class RenderPlan <S, T>(
             keyParams.updateWidth(node.sourceWidth)
             renderResult.add(nodeData)
         }
-        val decoration =  decorator.decorate(renderResult, keyParams)
-        val data = RenderData(keyParams.createSnapshot(name), decoration)
-        return data
+        val canvas = RenderCanvas(LayerType.Render)
+        canvas.mergeAllToActiveLayer(renderResult)
+        val decoration = decorator.decorate(canvas, keyParams)
+        canvas.addLayer(decoration.layer)
+
+        return canvas
     }
     /**
      * @param parameters Upper RenderPlan
      * @param list list of resolved from source receivers
      */
-    fun scopedRender(parameters:  RenderParameters, list: List<T>):RenderData{
-        val renderResult = mutableListOf<RenderData>()
+    fun scopedRender(parameters: RenderParameters, list: List<T>):RenderCanvas{
+        val renderResult = mutableListOf<RenderCanvas>()
         keyParams.updateWidth(parameters.contentWidth)
         for(t in 0 until list.size){
             val receiver =  list[t]
@@ -176,15 +180,18 @@ class RenderPlan <S, T>(
                 renderResult.add(nodeData)
             }
         }
+        val canvas = RenderCanvas(LayerType.Render)
+        canvas.mergeAllToActiveLayer(renderResult)
         return if(renderResult.isNotEmpty()){
-            val decoration =  decorator.decorate(renderResult, keyParams)
-            RenderData(keyParams.createSnapshot(name), decoration)
-
+            val decoration =  decorator.decorate(canvas, keyParams)
+            canvas.addLayer(decoration.layer)
+            canvas
         }else{
             "Empty content about to be rendered. Is this planned?".output(Colour.YellowBright)
             val empty = StyledPair()
-            val decoration = decorator.decorate(empty, this)
-            RenderData(keyParams.createSnapshot(name), decoration)
+            val decoration = decorator.decorate(canvas, this)
+            canvas.addLayer(decoration.layer)
+            canvas
         }
      }
     fun info():RenderPlanSnapshot {
@@ -209,7 +216,7 @@ class RenderPlan <S, T>(
         foreignNodes.values.forEach {it.clear()}
         foreignNodes.clear()
     }
-    override fun toString(): String = displayName.plain
+    override fun toString(): String = styledName.plain
 
     operator fun get(type: RenderableType): List<TemplatePart<*>> {
         val filtered = renderNodes.filter {

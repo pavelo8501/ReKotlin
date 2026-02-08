@@ -1,15 +1,24 @@
 package po.misc.data.pretty_print.parts.decorator
 
 import po.misc.collections.asList
+import po.misc.data.Normalizable
+import po.misc.data.Separator
 import po.misc.data.Styled
 import po.misc.data.helpers.coerceAtLeast
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.Verbosity
-import po.misc.data.pretty_print.parts.common.BorderInitializer
+import po.misc.data.output.outputBlock
+import po.misc.data.pretty_print.parts.common.BorderContainer
+import po.misc.data.pretty_print.parts.common.BorderSet
 import po.misc.data.pretty_print.parts.common.SeparatorKind
 import po.misc.data.pretty_print.parts.common.TaggedSeparator
 import po.misc.data.pretty_print.parts.options.Orientation
-import po.misc.data.pretty_print.parts.rendering.BaseRenderParameters
+import po.misc.data.pretty_print.parts.render.BaseRenderParameters
+import po.misc.data.pretty_print.parts.render.CanvasLayer
+import po.misc.data.pretty_print.parts.render.LayerType
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderRole
+import po.misc.data.strings.appendStyled
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.TextStyler
 import po.misc.data.text_span.*
@@ -18,45 +27,70 @@ import po.misc.debugging.models.InstanceMeta
 import po.misc.interfaces.named.Named
 import po.misc.interfaces.named.NamedComponent
 import po.misc.interfaces.named.asNamed
+import po.misc.interfaces.named.asNamedComponent
 
 class Decorator(
-    val host: Named
+    val host: NamedComponent
 ): NamedComponent, TextStyler{
 
-    constructor(
-        hostName: String,
-        vararg separators:TaggedSeparator<BorderPosition>,
-    ): this(hostName.asNamed()) {
+    constructor(hostName: String, vararg separators:TaggedSeparator<BorderPosition>): this(hostName.asNamed()) {
         separators.forEach {
             addSeparator(it)
         }
     }
 
     data class Snapshot(
-        val status: DecorationStatus,
+        private val classMeta: InstanceMeta,
+        internal val metrics: Metrics,
         val policy: DecorationPolicy,
-        val bordersUsed:List<DecoratorBorder.Snapshot>
     ): Styled {
+        var status: DecorationStatus = DecorationStatus.Undecorated
+            internal set
+
+        var bordersSnapshot:List<DecoratorBorder.Snapshot> = emptyList()
+            private set
+
+        val maxWidth: Int = metrics.maxWidth
+        val leftOffset: Int = metrics.leftOffset
 
         override val textSpan: TextSpan = buildTextSpan {
-            append(policy)
-            append(status)
-            append(bordersUsed)
+            appendLineStyling("Decorating", classMeta.instanceName, ::status, ::policy)
+            appendLineStyling("Metrics", metrics)
+        }
+
+        internal fun borderSnapshot(snapshot:List<DecoratorBorder.Snapshot>){
+            bordersSnapshot = snapshot
         }
     }
 
     class Metrics(
-        override val contentWidth: Int,
-        override val maxWidth: Int = contentWidth,
+        override val maxWidth: Int,
         override val leftOffset: Int = 0,
-    ): BaseRenderParameters
+        override val orientation: Orientation = Orientation.Horizontal,
+        val linesCount: Int = 0,
+    ): BaseRenderParameters{
 
-    private val hostName: InstanceMeta get()  {
-       return ClassResolver.instanceMeta(host)
+        constructor(
+            parameters:BaseRenderParameters,
+            linesCount: Int
+        ):this(
+            parameters.maxWidth,
+            parameters.leftOffset,
+            parameters.orientation,
+            linesCount
+        )
+        constructor(content: TextSpan):this(content.plainLength, linesCount = 1)
+
+        val metaText: String get() {
+           return buildString {
+                appendStyled("Metrics", ::linesCount, ::orientation, ::maxWidth, ::leftOffset)
+            }
+        }
+        override fun toString(): String = metaText
     }
-    override val name :String get() = "Decorator"
-    override val onBehalfName: TextSpan get() = hostName.instanceName
 
+    override val name :String get() = "Decorator"
+    override val onBehalfName: TextSpan get() = host.styledName
     override var verbosity: Verbosity = Verbosity.Warnings
 
     var policy: DecorationPolicy = DecorationPolicy.Default
@@ -71,15 +105,12 @@ class Decorator(
     val bottomBorder: DecoratorBorder = DecoratorBorder(BorderPosition.Bottom, "")
     val leftBorder: DecoratorBorder = DecoratorBorder(BorderPosition.Left, "")
     val rightBorder: DecoratorBorder = DecoratorBorder(BorderPosition.Right, "")
-
     private val borders = listOf(topBorder, bottomBorder, leftBorder, rightBorder)
     val enabled: Boolean get() = borders.any { it.enabled }
 
-    private val verticalBorderLen : Int  get() = leftBorder.displaySize + rightBorder.displaySize
+    private val verticalBorderLen: Int get() = leftBorder.displaySize + rightBorder.displaySize
 
-    init {
-        initialBorderConfig()
-    }
+    init { initialBorderConfig() }
 
     private fun getBorder(position: BorderPosition):DecoratorBorder{
        return when(position){
@@ -90,9 +121,10 @@ class Decorator(
         }
     }
 
-    private fun isTopDecoratable(payloads: List<DecorationPayload>): Boolean{
-        return !(payloads.isEmpty() && topBorder.kind == SeparatorKind.LineBreak)
+    private fun isTopDecoratable(): Boolean{
+       return topBorder.kind != SeparatorKind.LineBreak
     }
+
     private fun initialBorderConfig(){
         borders.forEach {border->
             if (policy == DecorationPolicy.MandatoryGap && border.tag == BorderPosition.Top) {
@@ -112,149 +144,212 @@ class Decorator(
             }
             border.initBy(tagged)
         }else{
-            if(border.enabled) notify("${border.name} was overwritten", NotificationTopic.Debug)
+            if(border.enabled) notify("${border.name} was overwritten", Topic.Debug)
             if(!tagged.enabled){
-                notify("Disabled separator supplied for ${border.name}", NotificationTopic.Debug)
+                notify("Disabled separator supplied for ${border.name}", Topic.Debug)
                 return
             }
             border.initBy(tagged)
         }
     }
-    private fun prepareUndecoratedResult(spans: List<TextSpan>):DecorationContent{
-        val actualWidth = spans.maxOfOrNull { it.plainLength }?:0
-        val completeRender = spans.joinSpans(Orientation.Vertical)
-        return DecorationContent(name, actualWidth, completeRender, spans, createSnapshot(DecorationStatus.Undecorated))
-    }
-    private fun prepareResult(spans: List<TextSpan>):DecorationContent{
-        val actualWidth = spans.maxOfOrNull { it.plainLength }?:0
-        val completeRender = spans.joinSpans(Orientation.Vertical)
-        return DecorationContent(name, actualWidth, completeRender, spans, createSnapshot(DecorationStatus.Decorated))
+
+    private fun createSnapshot(source: Any, metrics: Metrics):Snapshot{
+        return Snapshot(ClassResolver.instanceMeta(source), metrics, policy)
     }
 
-    private fun horizontalLen(parameters: BaseRenderParameters): Int{
-        val totalWidth = parameters.maxWidth +  parameters.leftOffset
-        if(totalWidth > parameters.contentWidth){
-            return totalWidth + parameters.leftOffset
-        }
-        return  parameters.contentWidth + verticalBorderLen
+    private fun prepareUndecoratedResult(spans: List<TextSpan>, snapshot: Snapshot):DecorationContent{
+        val layer =  CanvasLayer(LayerType.Decoration, spans)
+        return DecorationContent(name, layer, snapshot)
     }
-    private fun rightIndentSize(parameters: BaseRenderParameters, contentSize: Int): Int{
+    private fun prepareResult(spans: List<TextSpan>, snapshot: Snapshot):DecorationContent{
+        val layer =  CanvasLayer(LayerType.Decoration, spans)
+        snapshot.status = DecorationStatus.Undecorated
+        return DecorationContent(name, layer, snapshot)
+    }
+
+    private fun horizontalLen(parameters: Metrics): Int{
+        val totalWidth = parameters.maxWidth
+        return totalWidth + verticalBorderLen
+    }
+    private fun rightIndentSize(contentWidth: Int, parameters: Metrics): Int{
         val totalWidth = parameters.maxWidth +  parameters.leftOffset
-        if(totalWidth> parameters.contentWidth){
-            return totalWidth - contentSize - verticalBorderLen
+        if(totalWidth >= contentWidth){
+            return totalWidth - contentWidth - verticalBorderLen
         }
         return  parameters.leftOffset
     }
-    private fun leftIndentSize(parameters: BaseRenderParameters): Int{
+    private fun leftIndentSize(parameters: Metrics): Int{
         return  parameters.leftOffset
     }
 
-    private fun renderTop(parameters: BaseRenderParameters): TextSpan{
+    private fun createMetrics(content: TextSpan,  linesCount: Int):Metrics{
+        return when(content){
+            is CanvasLayer ->
+                Metrics(content.lineMaxLen, 0, content.displayOrientation, linesCount)
+            else -> Metrics(content)
+        }
+    }
+    private fun createMetrics(styled: Styled):Metrics{
+        return when(styled){
+            is RenderCanvas -> Metrics(styled.lineMaxLen, linesCount =  styled.layersCount)
+            else -> Metrics(styled.textSpan)
+        }
+    }
+    private fun createMetrics(renderParams: BaseRenderParameters, linesCount: Int):Metrics{
+        return Metrics(renderParams, linesCount)
+    }
+
+    private fun renderTop(metrics: Metrics): MutableSpan{
         val span = topBorder.buildRender {
-            val totalXLen = horizontalLen(parameters)
+            val totalXLen = horizontalLen(metrics)
+            OFFSET_MARGIN.staticMargin(metrics.leftOffset)
             repeatRender(totalXLen)
             render()
         }
         return span
     }
-    private fun renderBottom(parameters: BaseRenderParameters, addLineBreak: Boolean = false):TextSpan{
+    private fun renderBottom(metrics: Metrics): MutableSpan{
         val span = bottomBorder.buildRender {
-            val totalXLen = horizontalLen(parameters)
+            val totalXLen = horizontalLen(metrics)
+            OFFSET_MARGIN.staticMargin(metrics.leftOffset)
             repeatRender(totalXLen)
-            if(addLineBreak){
-                SpecialChars.NEW_LINE.staticMargin()
-            }
-            render(staticFirst = false)
+            render()
         }
         return span
     }
-    private fun renderLeft(parameters: BaseRenderParameters, payloads: List<DecorationPayload>){
+    private fun renderLeft(payloads: List<DecorationPayload>, metrics: Metrics){
         payloads.forEach { payload ->
-            val span = leftBorder.buildRender {
-                val emptySpaceSize = leftIndentSize(parameters)
-                MARGIN.staticMargin(emptySpaceSize)
-                render(staticFirst = false)
+            renderLeft(payload, metrics)
+        }
+    }
+    private fun renderLeft(payload: DecorationPayload, metrics: Metrics){
+        val span = leftBorder.buildRender {
+            val emptySpaceSize = leftIndentSize(metrics)
+            OFFSET_MARGIN.staticMargin(emptySpaceSize)
+            render()
+        }
+        payload.prepend(span)
+    }
+    private fun renderRight(payloads: List<DecorationPayload>, metrics: Metrics){
+        payloads.forEach { payload ->
+            renderRight(payload, metrics)
+        }
+    }
+    private fun renderRight(payload: DecorationPayload,  metrics: Metrics){
+        val span = rightBorder.buildRender {
+            val emptySpaceSize = rightIndentSize(payload.plainLength, metrics)
+            OFFSET_MARGIN.staticMargin(emptySpaceSize)
+            render()
+        }
+        payload.append(span)
+    }
+
+    private fun decorateContent(
+        content: List<MutableSpan>,
+        snapshot : Snapshot,
+    ):DecorationContent = outputBlock{
+        snapshot.output(Topic.Debug)
+        if (!enabled){
+            prepareUndecoratedResult(content, snapshot)
+        }else {
+            val processedSpans = mutableListOf<TextSpan>()
+            val renderPayloads = content.map { DecorationPayload(LEFT_RIGHT_ORIENTATION, it) }
+            if (topBorder.enabled && isTopDecoratable()) {
+                val mutable = renderTop(snapshot.metrics).changeRole(RenderRole.TopBorder)
+                processedSpans.add(mutable)
             }
-            payload.prepend(span)
-        }
-    }
-    private fun renderRight(parameters: BaseRenderParameters, payloads: List<DecorationPayload>){
-        payloads.forEach {payload->
-            val span = rightBorder.buildRender {
-                val emptySpaceSize = rightIndentSize(parameters, payload.plainLength)
-                MARGIN.staticMargin(emptySpaceSize)
-                render()
+            if (rightBorder.enabled) {
+                renderRight(renderPayloads, snapshot.metrics)
             }
-            payload.append(span)
+            if (leftBorder.enabled || snapshot.metrics.leftOffset > 0) {
+                renderLeft(renderPayloads, snapshot.metrics)
+            }
+            val spans = renderPayloads.map { it.commitChanges(RenderRole.Content) }
+            processedSpans.addAll(spans)
+            if (bottomBorder.enabled) {
+                val mutable = renderBottom(snapshot.metrics).changeRole(RenderRole.TopBorder)
+                processedSpans.add(mutable)
+            }
+            val borderSnapshot =  borders.map { it.snapshot() }
+            snapshot.borderSnapshot(borderSnapshot)
+            val decorationResult = prepareResult(processedSpans, snapshot)
+            onBordersApplied?.invoke(decorationResult)
+            decorationResult
         }
     }
 
-    private fun decorateContent(contentLines: List<MutablePair>, parameters: BaseRenderParameters):DecorationContent{
-        val processedSpans = mutableListOf<TextSpan>()
-        val renderPayloads = contentLines.map { DecorationPayload(LEFT_RIGHT_ORIENTATION, it) }
+    fun decorate(record: TextSpan, renderParams: BaseRenderParameters? = null): DecorationContent{
 
-        if(topBorder.enabled && isTopDecoratable(renderPayloads)){
-            val span = renderTop(parameters)
-            processedSpans.add(span)
+        val content =  when(record){
+           is CanvasLayer -> record.text.asMutable().asList()
+           is TextSpan -> {
+               listOf(CanvasLayer(LayerType.Render, record.asList()))
+           }
         }
-        if(rightBorder.enabled){
-           renderRight(parameters, renderPayloads)
+        val metrics = renderParams?.let {
+            createMetrics(it, content.size)
+        }?:run {
+            createMetrics(record, content.size)
         }
-        if(leftBorder.enabled){
-            renderLeft(parameters, renderPayloads)
-        }
-        renderPayloads.forEach{payload->
-            processedSpans.add(payload.commitChanges())
-        }
-        if(bottomBorder.enabled){
-            processedSpans.add(renderBottom(parameters, false))
-        }
-        val decorationResult = prepareResult(processedSpans)
-        onBordersApplied?.invoke(decorationResult)
-        return decorationResult
+        val snapshot = createSnapshot(record, metrics)
+        return decorateContent(content, snapshot)
     }
+    fun decorate(records: List<TextSpan>, renderParams: BaseRenderParameters? = null): DecorationContent =
+        decorate(CanvasLayer(LayerType.Render, records), renderParams)
 
-    fun decorate(records: List<TextSpan>, renderParams: BaseRenderParameters? = null): DecorationContent {
-        if (!enabled) {
-            return prepareUndecoratedResult(records)
+    fun decorate(renderParams: BaseRenderParameters, vararg lines: String): DecorationContent =
+        decorate(CanvasLayer(LayerType.Render, lines.toMutablePairs()), renderParams)
+
+    fun decorate(vararg lines: String): DecorationContent =
+        decorate(CanvasLayer(LayerType.Render, lines.toMutablePairs()), null)
+
+    fun decorate(styled: Styled, renderParams: BaseRenderParameters? = null): DecorationContent {
+        if (styled is Normalizable) {
+            styled.normalize()
         }
-        val params = renderParams?:run {
-            val maxLength = records.maxOfOrNull { it.plainLength }?:0
-            Metrics(maxLength)
+        val content = when (styled) {
+            is RenderCanvas -> {
+                styled.activeLayers.flatMap {layer->
+                    if(layer.layerType == LayerType.Decoration){
+                        layer.lines.copyMutablePairs()
+                    }else{
+                        layer.text.copyMutable().asList()
+                    }
+                }
+            }
+            is Styled -> styled.textSpan.copyMutable().asList()
         }
-        val contentLines = records.toMutablePairs()
-        return decorateContent(contentLines, params)
+        val metrics = renderParams?.let {
+            createMetrics(it, content.size)
+        }?:run {
+            createMetrics(styled)
+        }
+        val snapshot = createSnapshot(styled, metrics)
+        return decorateContent(content, snapshot)
     }
-    @JvmName("decorateSingle")
-    fun decorate(record: TextSpan, renderParams: BaseRenderParameters? = null): DecorationContent = decorate(record.asList(), renderParams)
-
-    fun decorate(renderParams: BaseRenderParameters, vararg lines: String): DecorationContent = decorate(lines.toMutablePairs(), renderParams)
-    fun decorate(vararg lines: String): DecorationContent = decorate(lines.toMutablePairs(), null)
 
     fun addSeparator(tagged: TaggedSeparator<BorderPosition>): Decorator{
         initBorder(tagged)
         return this
     }
-    fun addSeparator(initializer: BorderInitializer){
+    fun addSeparator(initializer: BorderContainer){
         initializer.separatorSet.forEach {
             initBorder(it)
         }
     }
-
-    fun createSnapshot(status: DecorationStatus):Snapshot{
-        val enabled = borders.filter { it.enabled }
-        val borderSnapshot = enabled.map { it.snapshot() }
-        return Snapshot(status, policy, borderSnapshot)
+    fun addSeparator(borderSet: BorderSet){
+        borderSet.separatorSet.forEach {
+            addSeparator(it)
+        }
     }
-    
+
     operator fun get(position: BorderPosition): DecoratorBorder = getBorder(position)
     operator fun plus(taggedSeparator: TaggedSeparator<BorderPosition>){
         addSeparator(taggedSeparator)
     }
 
-    companion object{
-       private const val MARGIN: String = SpecialChars.WHITESPACE
-
+    companion object {
+       private const val OFFSET_MARGIN: String = SpecialChars.WHITESPACE
        val LEFT_RIGHT_ORIENTATION: Orientation = Orientation.Vertical
        val TOP_BOTTOM_ORIENTATION: Orientation = Orientation.Horizontal
 
@@ -272,7 +367,7 @@ class Decorator(
 fun Named.Decorator(
     configAction: (DecoratorConfigurator.() -> Unit)? = null
 ): Decorator{
-    val config = DecoratorConfigurator(Decorator(this))
+    val config = DecoratorConfigurator(Decorator(asNamedComponent()))
     configAction?.invoke(config)
     return config.decorator
 }

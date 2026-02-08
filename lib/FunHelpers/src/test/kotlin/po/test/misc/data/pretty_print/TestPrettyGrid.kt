@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test
 import po.misc.data.output.output
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.buildPrettyGrid
-import po.misc.data.pretty_print.parts.cells.cellDelete
 import po.misc.data.styles.Colour
 import po.misc.data.styles.colorize
 import po.test.misc.data.pretty_print.setup.PrettyTestBase
@@ -23,9 +22,7 @@ class TestPrettyGrid : PrettyTestBase() {
         val grid = buildPrettyGrid<TestPrettyGrid> {
             buildRow {
                 addCells(::textProperty, ::intProperty, ::boolProperty)
-
                 add(textProperty)
-                cellDelete(textProperty)
             }
         }
         grid.render(this).output()

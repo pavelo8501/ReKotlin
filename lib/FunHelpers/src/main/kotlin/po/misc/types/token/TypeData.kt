@@ -12,20 +12,37 @@ import kotlin.reflect.KTypeParameter
 import kotlin.reflect.typeOf
 
 
+//data class GenericInfo(
+//    val parameterName: String,
+//    val classInfo: ClassInfo
+//): PrettyPrint {
+//
+//    private val classDisplayName: String  get() {
+//        return if(kType.isMarkedNullable){
+//            "${classInfo.simpleName}?".colorize(Colour.Yellow)
+//        }else{
+//            classInfo.simpleName.colorize(Colour.Yellow)
+//        }
+//    }
+//    val isMarkedNullable: Boolean get() = kType.isMarkedNullable
+//    override val formattedString: String = "${parameterName.colorize(Colour.GreenBright)}: $classDisplayName"
+//}
+
 data class GenericInfo(
     val parameterName: String,
-    val kType: KType,
-    val classInfo: ClassInfo
-): PrettyPrint {
+    val className: String,
+    val isMarkedNullable: Boolean
+){
+
     private val classDisplayName: String  get() {
-        return if(kType.isMarkedNullable){
-            "${classInfo.simpleName}?".colorize(Colour.Yellow)
+        return if(isMarkedNullable){
+            "${className}?".colorize(Colour.Yellow)
         }else{
-            classInfo.simpleName.colorize(Colour.Yellow)
+            className.colorize(Colour.Yellow)
         }
     }
-    val isMarkedNullable: Boolean get() = kType.isMarkedNullable
-    override val formattedString: String = "${parameterName.colorize(Colour.GreenBright)}: $classDisplayName"
+    val formattedString: String = "${classDisplayName.colorize(Colour.GreenBright)}: $classDisplayName"
+
 }
 
 
@@ -37,22 +54,16 @@ class TypeSlot(
     val parameter: KTypeParameter,
 ): PrettyPrint{
 
-
-    constructor(parameter: KTypeParameter, typeToken: TypeToken<*>):this(parameter){
-        token = typeToken
-    }
-
     var token: TypeToken<*>? = null
     private set
 
     val kClass: KClass<*>? get() =  token?.kClass
     val type: KType? get() =  token?.kType
 
-    val classResolved: Boolean get() = kClass != null
+    val genericInfo : GenericInfo = GenericInfo(parameter.name, token?.simpleName?:"Any", type?.isMarkedNullable?:false)
 
     val parameterName: String = parameter.name
-    val upperBoundsClasses: List<KClass<*>> get()
-    {
+    val upperBoundsClasses: List<KClass<*>> get() {
         val result = parameter.upperBounds.mapNotNull { it.classifier as? KClass<*> }
         if(result.isEmpty()) return listOf(Any::class)
         return result

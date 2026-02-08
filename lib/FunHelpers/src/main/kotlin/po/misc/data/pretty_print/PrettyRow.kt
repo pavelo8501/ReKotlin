@@ -5,16 +5,15 @@ import po.misc.callbacks.callable.toCallable
 import po.misc.callbacks.validator.ValidityCondition
 import po.misc.collections.toList
 import po.misc.context.tracable.TraceableContext
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.Verbosity
 import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.cells.RenderableCell
 import po.misc.data.pretty_print.cells.SourceAwareCell
-import po.misc.data.pretty_print.cells.SourceLessCell
 import po.misc.data.pretty_print.cells.StaticCell
-import po.misc.data.pretty_print.parts.common.RenderData
 import po.misc.data.pretty_print.parts.common.RenderMarker
 import po.misc.data.pretty_print.parts.grid.RenderableType
 import po.misc.data.pretty_print.parts.loader.DataLoader
@@ -29,8 +28,9 @@ import po.misc.data.pretty_print.parts.rows.StaticRenderNode
 import po.misc.data.pretty_print.parts.rows.RowRenderPlanner
 import po.misc.data.pretty_print.parts.options.RowID
 import po.misc.data.pretty_print.parts.options.TemplateData
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.render.KeyParameters
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderParameters
 import po.misc.data.pretty_print.templates.TemplateCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
@@ -48,15 +48,15 @@ import kotlin.reflect.KProperty1
 sealed class PrettyRowBase<S, T>(
     val sourceType: TypeToken<S>,
     final override val receiverType: TypeToken<T>,
-    initialCells: List<PrettyCellBase<*>>,
+    initialCells: List<RenderableCell>,
     rowID: RowID? = null,
       opts: CommonRowOptions? = null,
-):  TraceableContext, PrettyHelper, NamedComponent, TemplatePart<T> {
+):  TraceableContext, PrettyHelper, NamedComponent, TemplatePart<T>{
 
     val templateData: TemplateData = createRowData(this,  renderableType, rowID)
     override val name: String = templateData.templateID.name
     private var firstRender:Boolean = true
-    private val cellsBacking: MutableList<PrettyCellBase<*>> = mutableListOf()
+    private val cellsBacking: MutableList<RenderableCell> = mutableListOf()
 
     internal val planner : RowRenderPlanner<T> = RowRenderPlanner(this)
     override var verbosity: Verbosity = Verbosity.Warnings
@@ -71,7 +71,7 @@ sealed class PrettyRowBase<S, T>(
         keyParameters.initByOptions(value)
     }
 
-    override val keyParameters: KeyRenderParameters get() =  planner.keyParams
+    override val keyParameters: KeyParameters get() =  planner.keyParams
 
     final override val renderableType : RenderableType get() {
         return if(this is PrettyRow<*>){
@@ -81,7 +81,7 @@ sealed class PrettyRowBase<S, T>(
         }
     }
     override val templateID: RowID get() =  templateData.templateID as RowID
-    val cells : List<PrettyCellBase<*>> get() = cellsBacking
+    val cells : List<RenderableCell> get() = cellsBacking
     override var enabled: Boolean = true
     var staticCellsCount: Int = 0
         private set
@@ -111,7 +111,7 @@ sealed class PrettyRowBase<S, T>(
     }
     private fun preRenderConfig(renderHost: RenderParameters?){
         if(cells.isEmpty()){
-            notify("No cells. Nothing to render", NotificationTopic.Warning)
+            notify("No cells. Nothing to render", Topic.Warning)
             return
         }
         if(firstRender){
@@ -127,7 +127,7 @@ sealed class PrettyRowBase<S, T>(
             planner.keyParams.initByOptions(passedOptions)
         }
     }
-    private fun renderReturningData(receiver:T, renderHost: RenderParameters?):RenderData{
+    private fun renderReturningData(receiver:T, renderHost: RenderParameters?): RenderCanvas{
         preRenderConfig(renderHost)
         for(node in planner.nodes){
             when (node) {
@@ -141,7 +141,7 @@ sealed class PrettyRowBase<S, T>(
         return planner.finalizeRender()
     }
 
-    internal fun initCells(cells: List<PrettyCellBase<*>>){
+    internal fun initCells(cells: List<RenderableCell>){
         if(cells.isNotEmpty()){
             cellsBacking.clear()
             cellsBacking.addAll(cells)
@@ -201,10 +201,10 @@ sealed class PrettyRowBase<S, T>(
         handlePassedOpts(opts)
         return renderReturningData(receiver, null).styled
     }
-    protected fun doScopedRender(hostParameters: RenderParameters, receiver:T): RenderData {
+    protected fun doScopedRender(hostParameters: RenderParameters, receiver:T): RenderCanvas {
        return renderReturningData(receiver, hostParameters)
     }
-    protected fun doRender(marker: RenderMarker, receiver:T): RenderData {
+    protected fun doRender(marker: RenderMarker, receiver:T): RenderCanvas {
         return renderReturningData(receiver, null)
     }
 
@@ -217,13 +217,13 @@ class PrettyRow<T>(
     receiverType: TypeToken<T>,
     rowID: RowID? = null,
     opts: CommonRowOptions? = null,
-    initialCells: List<PrettyCellBase<*>>,
+    initialCells: List<RenderableCell> = emptyList()
 ): PrettyRowBase<T, T>(receiverType, receiverType, initialCells, rowID, opts),  RenderableElement<T, T>, TraceableContext, PrettyHelper{
 
     override var dataLoader: DataLoader<T, T> = DataLoader("PrettyRow", typeToken, typeToken)
         internal set
 
-    override fun renderFromSource(marker: RenderMarker, source:T, opts: CommonRowOptions? ): RenderData =
+    override fun renderFromSource(marker: RenderMarker, source:T, opts: CommonRowOptions? ): RenderCanvas =
         doRender(marker, source)
 
     override fun renderFromSource(source:T, opts: CommonRowOptions? ): String = doRender(source, opts)
@@ -253,7 +253,7 @@ class PrettyRow<T>(
        return doRenderStaticOnly(opts)
     }
 
-    fun RenderParameters.renderInScope(receiver: T):RenderData{
+    fun RenderParameters.renderInScope(receiver: T):RenderCanvas{
         return  doScopedRender(this, receiver)
     }
 
@@ -291,8 +291,8 @@ class PrettyRow<T>(
         operator fun invoke(
             rowID: RowID,
             opts: RowOptions? = null,
-            firstCell : SourceLessCell,
-            vararg cells: SourceLessCell,
+            firstCell : RenderableCell,
+            vararg cells: RenderableCell,
         ):PrettyRow<Any> {
             val prettyCells =  cells.toList(firstCell).filterIsInstance<PrettyCellBase<*>>()
             return  PrettyRow(TypeToken<Any>(), rowID, opts,  prettyCells)
@@ -324,14 +324,14 @@ class PrettyRow<T>(
         operator fun invoke(
             rowID: RowID,
             opts: RowOptions? = null,
-            cells: List<SourceLessCell>,
+            cells: List<RenderableCell>,
         ):PrettyRow<Any> {
             return  PrettyRow(TypeToken<Any>(), rowID, opts, cells.filterIsInstance<PrettyCellBase<*>>())
         }
 
         @JvmName("PrettyRowAnyList")
         operator fun invoke(
-            sourceLessCells: List<SourceLessCell>,
+            sourceLessCells: List<RenderableCell>,
             rowOption: RowBuildOption = RowOptions(Orientation.Horizontal),
         ):PrettyRow<Any> {
             val tokenAny = TypeToken<Any>()
@@ -341,7 +341,7 @@ class PrettyRow<T>(
 
         operator fun invoke(
             opts: RowBuildOption,
-            vararg sourceLessCells: SourceLessCell,
+            vararg sourceLessCells: RenderableCell,
         ):PrettyRow<Any> {
             val tokenAny = TypeToken<Any>()
             val prettyCells = sourceLessCells.toList().filterIsInstance<PrettyCellBase<*>>()
@@ -349,7 +349,7 @@ class PrettyRow<T>(
         }
 
         operator fun invoke(
-            vararg sourceLessCells: SourceLessCell,
+            vararg sourceLessCells: RenderableCell,
         ):PrettyRow<Any> {
             val tokenAny = TypeToken<Any>()
             val prettyCells = sourceLessCells.toList().filterIsInstance<PrettyCellBase<*>>()
@@ -440,7 +440,7 @@ class PrettyValueRow<S, T>(
         return rendered.joinToString(SpecialChars.NEW_LINE)
     }
 
-    fun RenderParameters.renderInScope(source: S): RenderData {
+    fun RenderParameters.renderInScope(source: S): RenderCanvas {
         val ownLoader = this@PrettyValueRow.dataLoader
         val receiver = ownLoader.resolveValue(source) {
             error("No source available", TraceOptions.ThisMethod)
@@ -448,7 +448,7 @@ class PrettyValueRow<S, T>(
         return doScopedRender(this,  receiver)
     }
 
-    override fun renderFromSource(marker: RenderMarker, source: S, opts: CommonRowOptions?): RenderData {
+    override fun renderFromSource(marker: RenderMarker, source: S, opts: CommonRowOptions?): RenderCanvas {
         val value = dataLoader.resolveValue(source) {
             error("renderFromSource", TraceOptions.ThisMethod)
         }
@@ -478,7 +478,7 @@ class PrettyValueRow<S, T>(
     }
 
     override fun hashCode(): Int {
-        var result = (templateID.hashCode() ?: 0)
+        var result = templateID.hashCode()
         result = 31 * result + sourceType.hashCode()
         result = 31 * result + receiverType.hashCode()
         result = 31 * result + cells.hashCode()

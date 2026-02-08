@@ -10,11 +10,12 @@ import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
 import po.misc.types.token.TypeToken
 import po.misc.types.token.tokenOf
+import po.test.misc.data.pretty_print.setup.PrettyTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestRowRenderingExtensions : Templated<TestRowRenderingExtensions>{
+class TestRowRenderingExtensions: PrettyTest<TestRowRenderingExtensions>(){
 
     override val receiverType : TypeToken<TestRowRenderingExtensions> = tokenOf()
 
@@ -28,7 +29,7 @@ class TestRowRenderingExtensions : Templated<TestRowRenderingExtensions>{
         val staticCell2 = text2.toCell()
         val row = PrettyRow(staticCell1, staticCell2)
         val render = row.underlined('*', Colour.RedBright)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val lines = render.lines()
         assertEquals(2, lines.size)
         assertTrue { lines[0].contains(text1) && lines[0].contains(text2) }
@@ -41,7 +42,7 @@ class TestRowRenderingExtensions : Templated<TestRowRenderingExtensions>{
         val keyed = TestRowRenderingExtensions::text2.toCell()
         val row = PrettyRow(keyed, staticCell1)
         val render = row.underlined(this,  '*', Colour.RedBright)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val lines = render.lines()
         assertEquals(2, lines.size)
         assertTrue { lines[0].contains(text1) && lines[0].contains(text2) }

@@ -27,6 +27,17 @@ fun <T> Array<out T>.toList(element:T): List<T> {
     }
 }
 
+fun <T> Array<out T>.toListOrDefaultIfEmpty(provider: () -> T): List<T> {
+    val thisList = toList()
+    if(thisList.isEmpty()){
+        return provider().asList()
+    }
+    return buildList {
+        addAll(thisList)
+    }
+}
+
+
 fun <T> MutableList<T>.addNotNull(element:T?){
     if(element != null){
         this.add(element)
@@ -89,7 +100,8 @@ fun <K: Any, V: Any>  MutableMap<K, V>.putOverwriting(key: K, value:V, overwritt
       }
 }
 
-inline fun <reified T: Any> Array<out T>.flattenVarargs(): List<T> {
+inline fun <reified T> Array<out T>.flattenVarargs(): List<T> {
+
     return buildList {
         for (element in this@flattenVarargs) {
             when (element) {
@@ -144,6 +156,72 @@ fun <T> List<T>.warnOverwriting(value: T, overwrittenAction: (T)-> Unit){
     if(indexed != null){
         overwrittenAction.invoke(indexed.second)
     }
+}
+
+@PublishedApi
+internal inline fun <T> List<T>.forEachButLast(skipLastSize: Int, action: (T) -> Unit) {
+    val repeatTill = this.size - skipLastSize
+    for(i in 0 until repeatTill){
+        val element = this[i]
+        action(element)
+    }
+}
+
+enum class ElementPosition { Single, First, Middle, Last }
+
+@PublishedApi
+internal inline fun <T> List<T>.forEachPositioned(action: (ElementPosition, T) -> Unit) {
+    if(size == 1){
+        action(ElementPosition.Single,  this[0])
+        return
+    }
+    for(i in 0 until size){
+        val element = this[i]
+        if(i == 0){
+            action(ElementPosition.First, element)
+            continue
+        }
+        if(i == size - 1){
+            action(ElementPosition.Last, element)
+            continue
+        }
+        action(ElementPosition.Middle, element)
+    }
+}
+
+
+
+internal inline fun <T> List<T>.onLastIfAny(action: (T) -> Unit) {
+    val element = lastOrNull()
+    if(element != null) action(element)
+}
+
+
+/**
+ * Builds a list by invoking the given [builder] function for each index from `0` until this value.
+ *
+ * The [builder] receives the current index, allowing you to generate values that depend on
+ * their position in the resulting list.
+ *
+ * Example:
+ * ```
+ * val items = 5.repeatBuild { index ->
+ *     "Item #$index"
+ * }
+ * // Produces: ["Item #0", "Item #1", "Item #2", "Item #3", "Item #4"]
+ * ```
+ *
+ * @param builder A function that takes the current index (starting at 0) and produces a value of type [T].
+ * @return A list containing [this] number of elements created by invoking [builder] for each index.
+ */
+inline fun <T: Any> Int.repeatBuild(builder: (Int)-> T): List<T>{
+    val result = mutableListOf<T>()
+    val thisSize = this
+    for (i in 0..<thisSize){
+        val built = builder(i)
+        result.add(built)
+    }
+    return result
 }
 
 

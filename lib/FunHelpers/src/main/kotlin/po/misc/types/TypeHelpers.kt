@@ -14,6 +14,7 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.isSuperclassOf
 
 
 inline fun <T1 : Any, R : Any> safeLet(p1: T1?, block: (T1) -> R?): R? {
@@ -128,9 +129,6 @@ inline fun <reified T> T?.getOrThrow(
     }
 }
 
-
-
-
 /**
  * Reified overload of [getOrThrow] that infers the expected type automatically.
  *
@@ -194,15 +192,11 @@ fun <T: Any> TypeToken<T>.getDefaultForType(): T? {
     return result?.safeCast(this.kClass)
 }
 
-inline fun <reified T, reified P> Iterable<*>.typedFilter(parameterProvider: (T)-> Any): List<T> {
-    val result = mutableListOf<T>()
-    for (element in this) {
-        if (element is T){
-           val parameter =  parameterProvider.invoke(element)
-            if(parameter::class.isSubclassOf(P::class)) {
-                result.add(element)
-            }
-        }
+inline fun <reified T> Any?.isSubclassOf():Boolean {
+    if(this == null){
+        return false
     }
-    return result
+    val comparedTo = T::class
+    return this::class.isSubclassOf(comparedTo)
 }
+

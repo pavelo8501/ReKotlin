@@ -11,38 +11,47 @@ import po.misc.data.pretty_print.formatters.text_modifiers.CellStyler
 import po.misc.data.pretty_print.formatters.text_modifiers.ColourCondition
 import po.misc.data.pretty_print.formatters.text_modifiers.TextTrimmer
 import po.misc.data.pretty_print.parts.cells.RenderRecord
+import po.misc.data.pretty_print.parts.common.BorderSet
+import po.misc.data.pretty_print.parts.decorator.Decorator
 import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.Options
-import po.misc.data.pretty_print.parts.rendering.CellParameters
+import po.misc.data.pretty_print.parts.render.CellParameters
 import po.misc.data.pretty_print.parts.rows.Layout
 import po.misc.data.styles.Colour
 import po.misc.data.styles.TextStyler
 import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.MutableSpan
 import po.misc.data.text_span.TextSpan
-import po.misc.interfaces.named.Named
+import po.misc.data.text_span.copyMutable
 import po.misc.interfaces.named.NamedComponent
 import po.misc.types.token.TypeToken
 
 
 
 sealed class PrettyCellBase<T>(
-    var cellOptions: Options,
+    opts: Options?,
     internal val type: TypeToken<T>
-): RenderableCell<T>, TextStyler,  NamedComponent {
-
-    enum class KeyValueTags : Named{ Key, Value }
+): RenderableCell, TextStyler, NamedComponent, PrettyHelper {
 
     data class Padding(val left: Int, val right: Int){
         val totalPadding:Int get() = left + right
     }
 
-    var areOptionsExplicit: Boolean = false
+    var explicitOptions: Boolean = true
         protected set
 
-    override var currentRenderOpts: Options = cellOptions
+    var cellOptions: Options = opts?:run {
+        explicitOptions = false
+        Options()
+    }
+
+    override var renderOptions: Options = cellOptions
+
     protected open val dynamicColour: DynamicColourModifier<*> = DynamicColourModifier(type)
     protected val trimmer: TextTrimmer = TextTrimmer("...")
     protected val styler: CellStyler = CellStyler()
+
+    internal val decorator = Decorator()
 
     override var keyText: String? = null
         protected set(value) {
@@ -63,6 +72,8 @@ sealed class PrettyCellBase<T>(
     var orientation: Orientation = Orientation.Horizontal
 
     val textFormatter: TextFormatter = TextFormatter(styler, trimmer)
+    private var onContentRendered : ((RenderRecord)-> Unit)? = null
+
     override var verbosity: Verbosity = Verbosity.Warnings
 
     private val shouldStyle: Boolean get() {
@@ -70,8 +81,9 @@ sealed class PrettyCellBase<T>(
     }
 
     init {
+        decorator.addSeparator(cellOptions)
         cellOptions.onUserModified {
-            areOptionsExplicit = true
+            explicitOptions = true
         }
     }
 
@@ -80,7 +92,7 @@ sealed class PrettyCellBase<T>(
             return  Padding(0, 0)
         }
         val free = (parameters.availableWidth - record.plainLength).coerceAtLeast(0)
-        return when (currentRenderOpts.align) {
+        return when (renderOptions.align) {
             Align.Center -> {
                 val left = free / 2
                 val right = free - left
@@ -93,8 +105,15 @@ sealed class PrettyCellBase<T>(
     protected fun warn(text: String) {
         text.output(Colour.YellowBright)
     }
-    abstract fun applyOptions(opts: CellOptions?): PrettyCellBase<T>
-    abstract fun copy(): PrettyCellBase<T>
+    open fun applyOptions(opts: CellOptions?): PrettyCellBase<T>{
+        val receivedOptions = toOptionsOrNull(opts)
+        if(receivedOptions != null) {
+            renderOptions = receivedOptions
+            explicitOptions = true
+        }
+        return this
+    }
+    abstract override fun copy(): PrettyCellBase<T>
 
     protected fun justify(record: RenderRecord, parameters: CellParameters?) {
         if (orientation == Orientation.Vertical){
@@ -126,54 +145,69 @@ sealed class PrettyCellBase<T>(
             }
         }
     }
-    protected fun createKeyed(value: TextSpan,   key: String):RenderRecord{
-        return RenderRecord(value.copyAsStacked(), MutablePair(key), currentRenderOpts.keySeparator)
+    protected fun createKeyed(value: TextSpan, key: String):RenderRecord{
+        return RenderRecord(value.copyMutable(), MutablePair(key), renderOptions.keySeparator)
     }
+
     protected fun finalizeRender(renderRec: RenderRecord): String {
         return with(renderRec){
             when {
-                currentRenderOpts.plainText -> {
+                renderOptions.plainText -> {
                     justify(renderRec, null)
                     plain
                 }
-                currentRenderOpts.sourceFormat -> {
+                renderOptions.sourceFormat -> {
                     justify(renderRec, null)
                     styled
                 }
                 else ->{
                     if(shouldStyle) {
-                        if(shouldStyle){ textFormatter.format(renderRec, currentRenderOpts) }
+                        if(shouldStyle){ textFormatter.format(renderRec, renderOptions) }
                         justify(renderRec, null)
-                        textFormatter.format(this, currentRenderOpts)
+                        textFormatter.format(this, renderOptions)
                     }
                     styled
                 }
             }
         }
     }
-    protected fun CellParameters.finalizeScopedRender(renderRec: RenderRecord): RenderRecord{
-        return  when {
-            currentRenderOpts.plainText -> {
+    protected fun CellParameters.finalizeScopedRender(renderRec: RenderRecord): MutableSpan{
+        val record =  when {
+            renderOptions.plainText -> {
                 justify(renderRec, this)
                 renderRec
             }
-            currentRenderOpts.sourceFormat -> {
+            renderOptions.sourceFormat -> {
                 justify(renderRec, this)
                 renderRec
             }
             else->{
-                if(shouldStyle){ textFormatter.format(renderRec, currentRenderOpts) }
+                if(shouldStyle){ textFormatter.format(renderRec, renderOptions) }
                 textFormatter.format(renderRec, this)
                 justify(renderRec, this)
                 renderRec
             }
         }
+        onContentRendered?.invoke(record)
+        if(decorator.enabled){
+           val decorationContent = decorator.decorate(record)
+           return decorationContent.layer
+        }
+        return record
     }
     protected fun setOptions(opts: Options) {
         cellOptions = opts
-        areOptionsExplicit = true
-        currentRenderOpts = opts
+        explicitOptions = true
+        renderOptions = opts
     }
+
+    fun onContentRendered(callback:(RenderRecord)->Unit){
+        onContentRendered = callback
+    }
+    fun borders(borderSet: BorderSet){
+        decorator.addSeparator(borderSet)
+    }
+
 
     /**
      * Adds one or more static [FormatterPlugin] instances to this cell.

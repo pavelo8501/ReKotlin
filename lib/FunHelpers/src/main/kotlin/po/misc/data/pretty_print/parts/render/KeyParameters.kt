@@ -1,15 +1,18 @@
-package po.misc.data.pretty_print.parts.rendering
+package po.misc.data.pretty_print.parts.render
 
 import po.misc.data.pretty_print.TemplatePart
 import po.misc.data.pretty_print.parts.options.Align
+import po.misc.data.pretty_print.parts.options.CellOptions
+import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.RowOptions
-import po.misc.data.pretty_print.parts.options.ViewPortSize
 import po.misc.data.pretty_print.parts.rows.Layout
+import po.misc.interfaces.named.Named
 
-class KeyRenderParameters(
+
+class KeyParameters(
     options: RowOptions? = null,
-): RenderParameters{
+): RenderParameters {
 
     private var sizeUpdated: Boolean = false
     override var contentWidth: Int = 0
@@ -38,22 +41,24 @@ class KeyRenderParameters(
             initByOptions(it)
         }
     }
-
-    private fun adjustMaxSize(size: Int){
-        if (layout == Layout.Stretch){
-            if(containerMaxWidth != 0){
-                maxWidth = containerMaxWidth
-            }
-        }
-    }
+//
+//    private fun adjustMaxSize(size: Int){
+//        if (layout == Layout.Stretch){
+//            if(containerMaxWidth != 0){
+//                maxWidth = containerMaxWidth
+//            }
+//        }
+//    }
     fun onUpdated(callback: (RenderParameters)-> Unit){
         onUpdated = callback
     }
 
-    fun updateWidth(width: Int){
+    fun updateWidth(width: Int, recalculateMaxWidth: Boolean = true){
         contentWidth = width
+        if(recalculateMaxWidth){
+            calculateMaxWidth()
+        }
         if(sizeUpdated){
-            adjustMaxSize(width)
             sizeUpdated = false
             onUpdated?.invoke(this)
         }
@@ -69,17 +74,33 @@ class KeyRenderParameters(
         onUpdated?.invoke(this)
     }
 
+    fun calculateMaxWidth(){
+        maxWidth = if(containerMaxWidth != 0){
+            containerMaxWidth
+        }else{
+            contentWidth
+        }
+    }
+
     fun implyConstraints(params: RenderParameters){
         if(params.maxWidth != 0){
             containerMaxWidth = params.maxWidth
         }
     }
-
-    fun createSnapshot(templatePart: TemplatePart<*>):RenderSnapshot{
-        return RenderSnapshot(templatePart.templateID.name, this)
+    fun createSnapshot(named: Named):RenderSnapshot{
+       return RenderSnapshot(named.name, this)
     }
+}
 
-    fun createSnapshot(name: String):RenderSnapshot{
-        return RenderSnapshot(name, this)
-    }
+
+class KeyCellParameters(
+
+): CellParameters {
+
+    override var index: Int = 1
+    override val layout: Layout = Layout.Compact
+    override var maxWidth: Int = 0
+    override var availableWidth: Int = 0
+    override var contentWidth: Int = 0
+    override val leftOffset: Int = 0
 }

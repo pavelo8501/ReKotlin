@@ -41,7 +41,7 @@ class TestRowRendering : PrettyTestBase(){
         }
         val render = row.render(record)
         row.cells.output()
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue { render.contains(headerText1) }
         assertTrue { render.contains("Name") && render.contains(record.name) }
     }
@@ -66,7 +66,7 @@ class TestRowRendering : PrettyTestBase(){
             assertTrue(thirdCell.dataLoader.hasProperty)
         }
         val render =  row.render(record)
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue("Static cells $headerText1 text missing") { render.contains(headerText1) }
         assertTrue("Property name not registered") { render.contains("Name") }
         assertTrue("Property value not registered") { render.contains(record.name) }
@@ -81,7 +81,7 @@ class TestRowRendering : PrettyTestBase(){
             addCell()
         }
         val render = row.renderAny(record, auxText)
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue("Static cell not rendered") { render.contains(headerText1) }
         assertTrue("Keyed cell not rendered") { render.contains(record.name) }
         assertTrue("Pretty cell not rendered") { render.contains(auxText) }
@@ -131,7 +131,7 @@ class TestRowRendering : PrettyTestBase(){
             add("Static")
         }
         val render = row.render(record)
-        render.output(enableOutput)
+        render.output(verbosity)
         val lines = render.lines()
         assertEquals(1, lines.size)
         assertTrue { lines.first().contains("Static") }

@@ -69,7 +69,7 @@ fun <T: Any> Tokenized<T>.signalOf(
 /**
  * Inline shortcut for [signalOf] using a reified payload type.
  */
-inline fun <reified T: Any, reified R> signalOf(
+inline fun <reified T, reified R> signalOf(
     options: SignalOptions? = null
 ): Signal<T, R> = createSignal(TypeToken.create<T>(), TypeToken.create<R>(), options)
 

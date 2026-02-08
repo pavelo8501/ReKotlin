@@ -26,7 +26,6 @@ class TestLambdaMap: Component {
 
     @Test
     fun `LambdaPayload can be used as a value for a map`() {
-
         var notified: String? = null
         val lambda: (String) -> Unit = {
             notified = it
@@ -75,7 +74,7 @@ class TestLambdaMap: Component {
         val collectedListeners = mutableListOf<Any>()
         val msg = "Message"
         lambdaMap.lambdaMap.values.forEachIndexed {index, mapValue->
-            lambdaMap.lambdaMap.toList().get(index)?.let {
+            lambdaMap.lambdaMap.toList()[index].let {
                 collectedListeners.add(it)
             }
             mapValue.call("${msg}_$index", Unit)

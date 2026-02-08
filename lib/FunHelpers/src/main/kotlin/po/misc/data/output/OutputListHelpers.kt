@@ -8,24 +8,6 @@ import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 
 
-fun List<*>.output(prefix: String = "", colour: Colour? = null){
-    if(prefix.isNotBlank()){
-        if(colour != null){
-            println("$prefix ".colorize(colour))
-        }else{
-            println("$prefix ")
-        }
-    }
-    val result = joinToString(separator = SpecialChars.NEW_LINE) { element ->
-        val formatedEntry = TextStyler.formatKnownTypes(element)
-        formatedEntry.styled
-    }
-    println(result)
-}
-
-fun List<Any>.output(context: TraceableContext, colour: Colour? = null){
-    outputInternal(context = context, receiver =  this, colour =  colour)
-}
 
 fun <T: Any> List<T>.output(
     prefix: String = "",
@@ -35,7 +17,7 @@ fun <T: Any> List<T>.output(
     checkDispatcher()
     if (prefix.isNotBlank()) {
         if (colour != null) {
-            println(TextStyler.colour(prefix, colour))
+            println(TextStyler.ansi.colour(prefix, colour))
         } else {
             println(prefix)
         }
@@ -50,7 +32,7 @@ fun <T: Any> List<T>.output(
 
 fun <T: Any> List<T>.output(
     transform: StringBuilder.(T)-> Any
-): Unit = output(prefix = "", colour = null)
+): Unit = output("", null)
 
 @JvmName("outputTraceableContext")
 fun <T: TraceableContext> List<T>.output(provider: OutputProvider = SyncPrint, outputBuilder:T.()-> String){

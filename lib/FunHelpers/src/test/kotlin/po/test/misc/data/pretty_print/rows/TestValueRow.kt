@@ -50,7 +50,7 @@ class TestValueRow : PrettyTestBase (){
         val record = report.record
         assertNotNull(template.renderPlan[PrettyValueRow].firstOrNull())
         val render = template.render(report)
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue("Record of report was not rendered"){ render.contains(record.text) }
     }
 
@@ -66,6 +66,6 @@ class TestValueRow : PrettyTestBase (){
             }
         }
         val render = grid.render(report)
-        render.output(enableOutput)
+        render.output(verbosity)
     }
 }

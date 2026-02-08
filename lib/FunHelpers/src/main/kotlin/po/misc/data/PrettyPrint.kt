@@ -13,17 +13,10 @@ interface PrettyPrint: TextBuilder {
     companion object:  StringFormatter()
 }
 
-interface Styled : TextSpan {
-
+interface Styled{
     val textSpan: TextSpan
-
-    override val plain: String get() = textSpan.plain
-    override val styled: String get() = textSpan.styled
-
-//    fun styledPair(plainText: String, styledText: String = plainText):StyledPair{
-//      return  StyledPair(TextStyler.stripAnsi(plainText), styledText)
-//    }
-
+    val plain: String get() = textSpan.plain
+    val styled: String get() = textSpan.styled
 }
 
 

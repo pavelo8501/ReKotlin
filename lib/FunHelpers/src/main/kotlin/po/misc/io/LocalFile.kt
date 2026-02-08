@@ -36,7 +36,7 @@ class SourcedFile<T: Any>(
     val provider: (ByteArray)-> T
 ) : FileMetaData by meta, TimeHelper {
 
-    val firstCreated: Instant = nowTimeUtc()
+    val firstCreated: Instant = nowTime()
 
     constructor(localFile: LocalFile, provider: (ByteArray)-> T):this(localFile.bytes, localFile.meta, provider)
 

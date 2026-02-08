@@ -28,7 +28,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = true), TextStyler {
+class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(), TextStyler {
 
     override val receiverType: TypeToken<TestRowRenderPlanner> = tokenOf()
 
@@ -91,7 +91,7 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         assertEquals(textForPretty.length, prettyNode.contentWidth, "Wrong width prettyNode")
         assertEquals(textForPretty.length, planner.contentWidth, "PrettyNode width does not influence rowWidth")
 
-        val separatorLength = keyedCell.currentRenderOpts.keySeparator.toString().length
+        val separatorLength = keyedCell.renderOptions.keySeparator.toString().length
         val projectedWidth = textForKeyed.length + ::textForKeyed.displayName.length + separatorLength
 
         parameters =  planner.createRenderNodes(listOf(keyedCell))
@@ -122,7 +122,7 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         val row = PrettyRow<TestRowRenderPlanner>(opts =  options,  listOf(keyed1, static2))
         assertEquals(options, row.options)
         val rendered = row.render(this)
-        rendered.output(enableOutput)
+        rendered.output(testVerbosity)
         assertEquals(options.viewport?.size, rendered.lengthNoAnsi)
     }
 
@@ -134,7 +134,7 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         val static2 = text2.toCell(options)
         val row = PrettyRow<TestRowRenderPlanner>(rowOptions,  listOf(keyed1, static2))
         val rendered = row.render(this)
-        rendered.output(enableOutput)
+        rendered.output(testVerbosity)
         assertEquals(rowOptions.viewport?.size, rendered.length)
     }
 
@@ -147,7 +147,7 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         listOf(static1, static2)
         val row = PrettyRow<TestRowRenderPlanner>(rowOptions,  listOf(static1, static2))
         val rendered = row.renderAny()
-        rendered.output(enableOutput)
+        rendered.output(testVerbosity)
         assertEquals(rowOptions.viewport?.size, rendered.length)
     }
 
@@ -162,7 +162,7 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         val firsNode =  assertIs<StaticRenderNode>(nodes.getOrNull(0))
         val secondNode =  assertIs<ValueRenderNode>(nodes.getOrNull(1))
         val rendered = firsNode.render(Unit)
-        rendered.output(enableOutput)
+        rendered.output(testVerbosity)
         assertEquals(cellWidth, firsNode.contentWidth, "FirsNode mutated width")
         assertEquals(cellWidth, secondNode.contentWidth, "SecondNode mutated width")
         assertEquals(cellWidth, rendered.plainLength)
@@ -199,11 +199,9 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         val keyed2 = ::longText2.toCell()
         val cellList = listOf(keyed1, keyed2)
         val row = PrettyRow<TestRowRenderPlanner>(options, cells = cellList)
-        if(enableOutput){
-            row.verbosity = Verbosity.Debug
-        }
+        row.verbosity = testVerbosity
         val render = row.render(this)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         assertEquals(ViewPortSize.Console80.size, render.lengthNoAnsi)
     }
 
@@ -215,11 +213,9 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         val keyed3 = ::longText3.toCell()
         val cellList = listOf(keyed2, keyed3)
         val row = PrettyRow<TestRowRenderPlanner>(options, cells = cellList)
-        if(enableOutput){
-            row.verbosity = Verbosity.Debug
-        }
+        row.verbosity = testVerbosity
         val render = row.render(this)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         assertEquals(ViewPortSize.Console80.size, render.lengthNoAnsi)
     }
 
@@ -230,15 +226,13 @@ class TestRowRenderPlanner : PrettyTest<TestRowRenderPlanner>(enableOutput = tru
         val keyed1 = ::longText3.toCell()
         val cellList = listOf(keyed1)
         val row = PrettyRow<TestRowRenderPlanner>(options, cells = cellList)
-        if(enableOutput){
-            row.verbosity = Verbosity.Debug
-        }
+        row.verbosity = testVerbosity
         val planner = row.planner
         val grid = PrettyGrid<TestRowRenderPlanner>(opts = gridOptions)
         grid.addRow(row)
         assertEquals(ViewPortSize.Console80.size, planner.maxWidth)
         val render = row.render(this)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         assertEquals(ViewPortSize.Console80.size, render.lengthNoAnsi)
     }
 

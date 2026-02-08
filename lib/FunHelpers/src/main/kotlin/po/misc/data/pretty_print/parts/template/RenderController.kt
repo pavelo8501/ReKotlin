@@ -2,7 +2,7 @@ package po.misc.data.pretty_print.parts.template
 
 import po.misc.data.pretty_print.PrettyRowBase
 import po.misc.data.pretty_print.TemplatePart
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
+import po.misc.data.pretty_print.parts.render.KeyParameters
 import po.misc.debugging.stack_tracer.TraceOptions
 import po.misc.exceptions.error
 import po.misc.types.getOrThrow
@@ -30,7 +30,7 @@ class RowDelegate<T>(){
             error("TemplateDelegate used before hos assigned", TraceOptions.ThisMethod)
         }
     }
-    val keyParameters: KeyRenderParameters get() = row.keyParameters
+    val keyParameters: KeyParameters get() = row.keyParameters
     internal fun attachHost(row: PrettyRowBase<*, T>) {
         rowBacking = row
     }
@@ -44,7 +44,7 @@ class TemplateDelegate<T>(){
             error("TemplateDelegate used before hos assigned", TraceOptions.ThisMethod)
         }
     }
-    val keyParameters: KeyRenderParameters get() = host.keyParameters
+    val keyParameters: KeyParameters get() = host.keyParameters
     internal fun attachHost(host: TemplatePart<*>) {
         hostBacking = host
     }

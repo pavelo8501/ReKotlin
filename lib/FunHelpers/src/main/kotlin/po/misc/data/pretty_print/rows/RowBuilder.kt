@@ -13,6 +13,7 @@ import po.misc.data.pretty_print.cells.ComputedCell
 import po.misc.data.pretty_print.cells.KeyedCell
 import po.misc.data.pretty_print.cells.PrettyCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.cells.RenderableCell
 import po.misc.data.pretty_print.cells.StaticCell
 import po.misc.data.pretty_print.grid.GridBuilderBase
 import po.misc.data.pretty_print.parts.grid.RenderKey
@@ -43,8 +44,8 @@ sealed class RowBuilderBase<T>(
 ): TokenFactory, TraceableContext, PrettyHelper{
 
     abstract val prettyRow: PrettyRowBase<*, T>
-    internal val prettyCellsBacking = mutableListOf<PrettyCellBase<*>>()
-    internal val cells : List<PrettyCellBase<*>> get() = prettyCellsBacking
+    internal val prettyCellsBacking = mutableListOf<RenderableCell>()
+    internal val cells : List<RenderableCell> get() = prettyCellsBacking
     internal val renderConditions = mutableListOf<ValidityCondition<T>>()
 
     protected val beforeRowRender: Signal<RowParams<T>, Unit> = signalOf<RowParams<T>, Unit>()
@@ -58,7 +59,7 @@ sealed class RowBuilderBase<T>(
         }
 
     @PublishedApi
-    internal fun <C: PrettyCellBase<*>> storeCell(cell : C): C {
+    internal fun <C: RenderableCell> storeCell(cell : C): C {
         prettyCellsBacking.add(cell)
         return cell
     }
@@ -84,7 +85,6 @@ sealed class RowBuilderBase<T>(
 
     fun add(property: KProperty1<T, *>, opt: CellOptions? = null): KeyedCell<T>{
         val provider = property.toElementProvider(receiverType)
-
         val cell = KeyedCell(provider, toOptionsOrNull(opt))
         return storeCell(cell)
     }
@@ -97,6 +97,10 @@ sealed class RowBuilderBase<T>(
     fun add(content: String, opts: CellOptions? = null):StaticCell {
         val cell = StaticCell(content, opts)
         return storeCell(cell)
+    }
+
+    fun add(vararg cells:RenderableCell){
+        cells.forEach { storeCell(it) }
     }
 
     fun addAll(
@@ -112,6 +116,7 @@ sealed class RowBuilderBase<T>(
         prettyCellsBacking.addAll(cells)
         return cells
     }
+
     fun add(
         function: Function1<T, Any?>,
         opts: CellOptions? = null

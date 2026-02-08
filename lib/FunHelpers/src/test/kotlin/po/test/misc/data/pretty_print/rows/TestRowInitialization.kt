@@ -26,7 +26,7 @@ class TestRowInitialization : PrettyTestBase(){
         val row = PrettyRow(options, cell, cell2, cell3)
         row.planner.nodes.output()
         val render = row.render()
-        render.output(enableOutput)
+        render.output(verbosity)
         val lines = render.lines()
         assertEquals(3, row.planner.nodes.size)
         assertEquals(1, lines.size)
@@ -40,9 +40,9 @@ class TestRowInitialization : PrettyTestBase(){
         val pretty = PrettyCell()
         val options = RowOptions(Orientation.Horizontal, Layout.Stretch)
         val row = PrettyRow(options, cell, pretty)
-        row.planner.nodes.output(enableOutput)
+        row.planner.nodes.output(verbosity)
         assertEquals(2, row.planner.nodes.size)
         val render = row.renderAny(prettyString)
-        render.output(enableOutput)
+        render.output(verbosity)
     }
 }

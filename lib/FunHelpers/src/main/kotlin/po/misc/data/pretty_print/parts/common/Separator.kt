@@ -4,6 +4,7 @@ import po.misc.data.helpers.coerceAtLeast
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.StyleCode
 import po.misc.data.styles.TextStyler
+import po.misc.data.text_span.SpanRole
 import po.misc.data.text_span.StyledPair
 import po.misc.types.k_class.simpleOrAnon
 
@@ -55,25 +56,25 @@ abstract class SeparatorBase(
         text = initialText?:""
 
     }
-    private fun createPair(times: Int):StyledPair?{
+    private fun createPair(times: Int, role: SpanRole? = null):StyledPair?{
         if(!enabled){ return null }
 
         if(kind == SeparatorKind.LineBreak){
-            return StyledPair(text)
+            return StyledPair(text, role = role)
         }
         val string = text.repeat(times)
         return  styleCode?.let {
-            StyledPair(string,  string.style(it))
+            StyledPair(string,  string.style(it), role)
         }?:run {
-            StyledPair(string,  string)
+            StyledPair(string,  string, role)
         }
     }
-    private fun createPair():StyledPair?{
+    private fun createPair(role: SpanRole? = null):StyledPair?{
         if(!enabled){ return null }
         return  styleCode?.let {
-            StyledPair(text,  text.style(it))
+            StyledPair(text,  text.style(it), role)
         }?:run {
-            StyledPair(text)
+            StyledPair(text, role = role)
         }
     }
 

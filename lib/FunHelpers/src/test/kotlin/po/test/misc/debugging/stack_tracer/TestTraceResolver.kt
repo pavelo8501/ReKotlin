@@ -3,7 +3,7 @@ package po.test.misc.debugging.stack_tracer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInstance
 import po.misc.context.component.Component
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.models.LogMessage
 import po.misc.debugging.classifier.HelperRecord
 import po.misc.debugging.stack_tracer.TraceResolver
@@ -33,7 +33,7 @@ class TestTraceResolver : Component {
 
     @BeforeTest
     fun setup() {
-        resolver.resolveTraceWhen(NotificationTopic.Debug)
+        resolver.resolveTraceWhen(Topic.Debug)
         assertEquals(6, resolver.classifier.records.size)
         assertNotNull(resolver.classifier["TestTraceResolver"])
     }

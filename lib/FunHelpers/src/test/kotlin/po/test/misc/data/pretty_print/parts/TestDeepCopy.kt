@@ -2,6 +2,7 @@ package po.test.misc.data.pretty_print.parts
 
 import po.misc.callbacks.callable.asProvider
 import po.misc.collections.asList
+import po.misc.data.logging.Verbosity
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyGrid
 import po.misc.data.pretty_print.PrettyRow
@@ -33,6 +34,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class TestDeepCopy : PrettyTestBase() {
+
 
     private val template1 = buildRow(Row.Row1) {
         add(PrintableRecord::name)
@@ -90,7 +92,7 @@ class TestDeepCopy : PrettyTestBase() {
     @Test
     fun `Row templateID creation logic`() {
         val row = PrettyRow<TestDeepCopy>()
-        row.templateData.templateID.output(enableOutput)
+        row.templateData.templateID.output(verbosity)
         assertTrue { row.templateData.templateID.typeName.contains("TestDeepCopy") }
         assertEquals(row.templateData.templateID, row.templateID)
     }
@@ -107,7 +109,7 @@ class TestDeepCopy : PrettyTestBase() {
 
         }
         assertIs<Row>(row.templateData.templateID)
-        row.templateData.output(enableOutput)
+        row.templateData.output(verbosity)
         assertTrue { row.templateData.templateID.typeName.contains(Row.Row1) }
         assertEquals(row.templateData.templateID, row.templateID)
     }
@@ -115,7 +117,7 @@ class TestDeepCopy : PrettyTestBase() {
     @Test
     fun `Grid templateID creation logic`() {
         val genericIDGrid = PrettyGrid(TypeToken<TestDeepCopy>())
-        genericIDGrid.templateData.templateID.output(enableOutput)
+        genericIDGrid.templateData.templateID.output(verbosity)
         assertTrue { genericIDGrid.templateData.templateID.typeName.contains("TestDeepCopy") }
         assertEquals(genericIDGrid.templateData.templateID, genericIDGrid.templateID)
         assertIs<DefaultGridID>(genericIDGrid.templateID)
@@ -131,7 +133,7 @@ class TestDeepCopy : PrettyTestBase() {
         val genericIDGrid = buildGrid<TestDeepCopy> {
 
         }
-        genericIDGrid.templateData.templateID.output(enableOutput)
+        genericIDGrid.templateData.templateID.output(verbosity)
         assertTrue { genericIDGrid.templateData.templateID.typeName.contains("TestDeepCopy") }
         assertEquals(genericIDGrid.templateData.templateID, genericIDGrid.templateID)
         assertIs<DefaultGridID>(genericIDGrid.templateID)
@@ -140,7 +142,7 @@ class TestDeepCopy : PrettyTestBase() {
 
         }
         assertIs<Grid>(grid.templateData.templateID)
-        grid.templateData.output(enableOutput)
+        grid.templateData.output(verbosity)
         assertTrue { grid.templateData.templateID.typeName.contains(Grid.Grid1) }
         assertEquals(grid.templateData.templateID, grid.templateID)
     }

@@ -10,6 +10,9 @@ import po.misc.data.styles.StyleCode
 import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 import po.misc.data.text_span.EditablePair
+import po.misc.data.text_span.TextSpan
+import po.misc.data.text_span.prepend
+import po.misc.data.text_span.prependCreating
 
 class InnerBorder(
     initialString: String,
@@ -66,11 +69,17 @@ class InnerBorders(
     fun disable(){
         leftBorder.enabled = false
     }
-    fun wrapText(record: RenderRecord) {
+    fun wrapText(record: TextSpan):TextSpan {
         if(leftBorder.enabled){
-            record.prepend(leftBorder.toString())
+            return  when(record){
+                is RenderRecord -> {
+                    record.prepend(leftBorder.toString())
+                    record
+                }
+                is TextSpan -> record prependCreating leftBorder.toString()
+            }
         }
-        return
+        return record
     }
 }
 

@@ -4,7 +4,7 @@ import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
 import po.misc.data.badges.Badge
 import po.misc.data.logging.LoggableTemplate
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyGrid
@@ -56,7 +56,7 @@ class ProceduralEntry(
 
     val result: Boolean get() = stepResult?.ok?:false
     val logRecords: MutableList<StructuredLoggable> = mutableListOf()
-    private val warnings get() = logRecords.filter { it.topic == NotificationTopic.Warning }
+    private val warnings get() = logRecords.filter { it.topic == Topic.Warning }
 
     var stepResult: StepResult? = null
         get() {

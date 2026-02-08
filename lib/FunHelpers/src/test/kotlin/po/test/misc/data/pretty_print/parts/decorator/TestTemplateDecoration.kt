@@ -22,7 +22,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-class TestTemplateDecoration: PrettyTest<TestTemplateDecoration>(true) {
+class TestTemplateDecoration: PrettyTest<TestTemplateDecoration>() {
 
     private class SubClass(val name: String = "SubClass")
 
@@ -115,7 +115,7 @@ class TestTemplateDecoration: PrettyTest<TestTemplateDecoration>(true) {
        // assertTrue("Borders not applied to Grid2"){ gridDelegate.decorator.enabled }
 
         val render = grid.render(this)
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val lines =  render.lines()
         assertEquals(4, lines.size)
         assertEquals(ViewPortSize.Console40.size, lines[3].length)

@@ -2,7 +2,7 @@ package po.misc.context.tracable
 
 import po.misc.data.output.output
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.models.Notification
 import po.misc.exceptions.ExceptionPayload
 import po.misc.debugging.stack_tracer.StackTracer
@@ -35,7 +35,7 @@ import kotlin.reflect.KClass
  * ```kotlin
  * class VerboseComponent : TraceableContext {
  *     override fun notify(loggable: Loggable) {
- *         if (loggable.topic.priority >= NotificationTopic.Info.priority) {
+ *         if (loggable.topic.priority >= Topic.Info.priority) {
  *             loggable.output() // only emit info and above
  *         }
  *     }
@@ -44,11 +44,11 @@ import kotlin.reflect.KClass
  *
  * @see Loggable
  * @see Notification
- * @see NotificationTopic
+ * @see Topic
  */
 interface TraceableContext  : StackTracer {
 
-    fun notification(subject: String, text: String, topic: NotificationTopic = NotificationTopic.Info): Notification{
+    fun notification(subject: String, text: String, topic: Topic = Topic.Info): Notification{
         return Notification(this, subject, text, topic)
     }
 
@@ -72,7 +72,7 @@ interface TraceableContext  : StackTracer {
      * Creates and emits a [Notification] with a given [topic], [subject], and [text].
      * Returns the created [Loggable] instance.
      */
-    fun notify(subject: String, text: String, topic: NotificationTopic = NotificationTopic.Info): Loggable {
+    fun notify(subject: String, text: String, topic: Topic = Topic.Info): Loggable {
        val notification = Notification(this,  subject, text, topic)
        notify(notification)
        return notification
@@ -82,7 +82,7 @@ interface TraceableContext  : StackTracer {
         outputImmediately: Boolean,
         subject: String,
         text: String,
-        topic: NotificationTopic = NotificationTopic.Info
+        topic: Topic = Topic.Info
     ): Loggable {
         val notification = Notification(this,  subject, text, topic)
         if(outputImmediately){
@@ -94,11 +94,11 @@ interface TraceableContext  : StackTracer {
     }
 
     /**
-     * Emits an exception trace as a [NotificationTopic.Exception].
+     * Emits an exception trace as a [Topic.Exception].
      * The [Throwable] is converted into a styled text trace automatically.
      */
     fun notify(subject: String, throwable: Throwable): Loggable =
-        notify(subject, throwable.throwableToText(), NotificationTopic.Exception)
+        notify(subject, throwable.throwableToText(), Topic.Exception)
 
 
     /**

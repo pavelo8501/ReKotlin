@@ -1,14 +1,11 @@
 package po.misc.data.pretty_print.formatters.text_modifiers
 
-import po.misc.data.pretty_print.cells.PrettyCellBase
 import po.misc.data.pretty_print.formatters.FormatterTag
 import po.misc.data.pretty_print.formatters.LayoutFormatter
 import po.misc.data.pretty_print.parts.cells.RenderRecord
-import po.misc.data.pretty_print.parts.rendering.CellParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.render.CellParameters
 import po.misc.data.styles.TextStyler
-import po.misc.data.text_span.EditablePair
-import po.misc.data.text_span.TextSpan
+import po.misc.data.text_span.MutableSpan
 
 /**
  * NOTE: Only the first ANSI style segment is preserved.
@@ -35,39 +32,31 @@ open class TextTrimmer(
         return text.take(takeSize) + trimSubstitution
     }
 
-    private fun trimStyled(textSpan: EditablePair, width: Int) {
-        val plainTrimmed = doTrimming(textSpan.plain, width)
-        val segments = textSpan.styled.extractStyleSegments()
-        segments.firstOrNull()?.let { segment ->
-            val formattedTrimmed = plainTrimmed.applyStyleSegment(segment)
-            textSpan.write(plainTrimmed, formattedTrimmed)
-        }
-    }
+//    private fun trimStyled(textSpan: EditablePair, width: Int) {
+//        val plainTrimmed = doTrimming(textSpan.plain, width)
+//        val segments = textSpan.styled.extractStyleSegments()
+//        segments.firstOrNull()?.let { segment ->
+//            val formattedTrimmed = plainTrimmed.applyStyleSegment(segment)
+//            textSpan.write(plainTrimmed, formattedTrimmed)
+//        }
+//    }
 
-    private fun trimNamed(textSpan: EditablePair, parameters: RenderParameters) {
-        textSpan.getNamed(PrettyCellBase.KeyValueTags.Value)?.let { namedFormatted ->
-            val key = textSpan.getNamed(PrettyCellBase.KeyValueTags.Key)
-            val keySize = key?.plainLength ?: 0
-            val trimSize = parameters.contentWidth - keySize
-            if (namedFormatted.styled.isStyled) {
-                trimStyled(namedFormatted, trimSize)
-            } else {
-                val plainTrimmed = doTrimming(namedFormatted.plain, trimSize)
-                namedFormatted.write(plainTrimmed, plainTrimmed)
-            }
-        }
-    }
+//    private fun trimNamed(textSpan: EditablePair, parameters: RenderParameters) {
+//        textSpan.getNamed(PrettyCellBase.KeyValueTags.Value)?.let { namedFormatted ->
+//            val key = textSpan.getNamed(PrettyCellBase.KeyValueTags.Key)
+//            val keySize = key?.plainLength ?: 0
+//
+//            val trimSize = textSpan.plainLength - keySize
+//            if (namedFormatted.styled.isStyled) {
+//                trimStyled(namedFormatted, trimSize)
+//            } else {
+//                val plainTrimmed = doTrimming(namedFormatted.plain, trimSize)
+//                namedFormatted.write(plainTrimmed, plainTrimmed)
+//            }
+//        }
+//    }
 
-    private fun trimFormatted(pair: EditablePair, parameters: RenderParameters) {
-        if (pair.styled.isStyled) {
-            trimStyled(pair, parameters.contentWidth)
-        } else {
-            val plainTrimmed = doTrimming(pair.plain, parameters.contentWidth)
-            pair.write(plainTrimmed, plainTrimmed)
-        }
-    }
-
-    override fun modify(pair: EditablePair, parameters: CellParameters) {
+    override fun modify(mutableSpan: MutableSpan, parameters: CellParameters) {
 
     }
 

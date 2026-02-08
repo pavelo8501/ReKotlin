@@ -131,7 +131,7 @@ class HealthMonitor<T: CTX>(
         val phases =  healthJournal.keys.joinToString(separator = SpecialChars.NEW_LINE.repeat(2)) {
             phaseReport(it)
         }
-        val report = "${TextStyler.style("Activity report", Colour.Blue)} for (${source.completeName}) ${SpecialChars.NEW_LINE}$phases"
+        val report = "${"Activity report".colorize(Colour.Blue)} for (${source.completeName}) ${SpecialChars.NEW_LINE}$phases"
         return  report
     }
 

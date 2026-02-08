@@ -36,7 +36,7 @@ class TestNamedRows  : PrettyTestBase(){
         }
         control.enable = false
         val render = template.render(record)
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue { render.contains(record.name) }
         assertFalse { render.contains(header2)  }
     }
@@ -58,7 +58,7 @@ class TestNamedRows  : PrettyTestBase(){
         }
         control.enable = false
         val render = template.render(record)
-        render.output(enableOutput)
+        render.output(verbosity)
         val lines = render.lines()
         assertEquals(2, lines.size)
         assertTrue { render.contains(record.name) }

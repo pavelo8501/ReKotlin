@@ -5,7 +5,7 @@ import po.misc.data.pretty_print.parts.options.InnerBorder
 import po.misc.data.styles.Colour
 
 
-fun PrettyRow<Any>.underlined(underlineChar: Char = '-', colour: Colour? = null):String {
+fun PrettyRow<*>.underlined(underlineChar: Char = '-', colour: Colour? = null):String {
     val opts = options
     TODO("underlined refactor")
    // opts.borders.bottomBorder  = InnerBorder(underlineChar, colour)
@@ -13,7 +13,7 @@ fun PrettyRow<Any>.underlined(underlineChar: Char = '-', colour: Colour? = null)
 }
 
 
-fun <T> PrettyRow<T>.underlined(receiver:T,   underlineChar: Char = '-', colour: Colour? = null):String {
+fun <T> PrettyRow<T>.underlined(receiver:T,  underlineChar: Char = '-', colour: Colour? = null):String {
     val opts = options
     TODO("underlined refactor")
     //opts.borders.bottomBorder  = Border(underlineChar, colour)

@@ -1,9 +1,10 @@
 package po.misc.data.pretty_print.formatters
 
 import po.misc.data.pretty_print.parts.cells.RenderRecord
-import po.misc.data.pretty_print.parts.rendering.CellParameters
-import po.misc.data.pretty_print.parts.rendering.StyleParameters
+import po.misc.data.pretty_print.parts.render.CellParameters
+import po.misc.data.pretty_print.parts.render.StyleParameters
 import po.misc.data.text_span.EditablePair
+import po.misc.data.text_span.MutableSpan
 import po.misc.types.token.TypeToken
 import po.misc.types.token.safeTypedCast
 
@@ -39,10 +40,10 @@ class TextFormatter(
        }
     }
 
-    fun <T> format(TextSpan: EditablePair, parameter:T, typeToken: TypeToken<T>){
+    fun <T> format(mutableSpan: MutableSpan, parameter:T, typeToken: TypeToken<T>){
         plugins.filterIsInstance<DynamicStyleFormatter<*>>().forEach { plugin ->
             val casted = plugin.safeTypedCast<DynamicStyleFormatter<T>,T>(typeToken)
-            casted?.modify(TextSpan, parameter)
+            casted?.modify(mutableSpan, parameter)
         }
     }
 

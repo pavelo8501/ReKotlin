@@ -3,7 +3,7 @@ package po.test.misc.data.pretty_print.parts.rendering
 import po.misc.data.pretty_print.parts.options.Orientation
 import po.misc.data.pretty_print.parts.options.RowOptions
 import po.misc.data.pretty_print.parts.options.ViewPortSize
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
+import po.misc.data.pretty_print.parts.render.KeyParameters
 import po.misc.data.pretty_print.parts.rows.Layout
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -15,7 +15,7 @@ class TestKeyRenderParameters {
 
     @Test
     fun `ViewportsSize sets lowest bound`(){
-        val params = KeyRenderParameters()
+        val params = KeyParameters()
         params.initByOptions(compactOptions)
 
         params.updateWidth(30)
@@ -29,7 +29,7 @@ class TestKeyRenderParameters {
 
     @Test
     fun `ContentSize does not influence max width if layout Stretched`(){
-        val params = KeyRenderParameters(stretchedOptions)
+        val params = KeyParameters(stretchedOptions)
         params.updateWidth(30)
         assertEquals(30, params.contentWidth)
         assertEquals(ViewPortSize.Console40.size, params.maxWidth, "Max width not initialized")
@@ -42,8 +42,8 @@ class TestKeyRenderParameters {
     @Test
     fun `Constraint have priority`(){
 
-        val upperParams = KeyRenderParameters(compactOptions)
-        val params = KeyRenderParameters(RowOptions(Orientation.Horizontal, Layout.Stretch, ViewPortSize.Console80))
+        val upperParams = KeyParameters(compactOptions)
+        val params = KeyParameters(RowOptions(Orientation.Horizontal, Layout.Stretch, ViewPortSize.Console80))
         params.implyConstraints(upperParams)
         params.updateWidth(70)
 

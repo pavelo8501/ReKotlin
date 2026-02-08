@@ -2,9 +2,14 @@ package po.misc.data.pretty_print.formatters.text_modifiers
 
 import po.misc.data.pretty_print.formatters.DynamicStyleFormatter
 import po.misc.data.pretty_print.formatters.FormatterTag
+import po.misc.data.strings.stringify
 import po.misc.data.styles.Colour
+import po.misc.data.styles.TextStyler
 import po.misc.data.styles.colorize
 import po.misc.data.text_span.EditablePair
+import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.MutableSpan
+import po.misc.data.text_span.asMutable
 import po.misc.types.token.TypeToken
 
 
@@ -145,14 +150,9 @@ class DynamicColourModifier<T>(
         }
         return text
     }
-    override fun modify(TextSpan: EditablePair, parameter: T) {
-        for (dynamicCondition in conditions){
-            val match: Boolean = dynamicCondition.check(parameter)
-            if(match){
-                 val colorized =  TextSpan.plain.colorize(dynamicCondition.colour)
-                 TextSpan.writeFormatted(colorized)
-            }
-        }
+    override fun modify(mutableSpan: MutableSpan, parameter: T) {
+        val colorized = modify(mutableSpan.plain, parameter)
+        mutableSpan.change(mutableSpan.plain, colorized)
     }
     companion object{
         inline operator fun <reified T> invoke(vararg conditions: ColourCondition<T>): DynamicColourModifier<T> {

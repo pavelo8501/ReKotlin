@@ -1,5 +1,8 @@
 package po.misc.collections
 
+import po.misc.types.safeCast
+import kotlin.reflect.full.isSubclassOf
+
 
 fun <C : MutableCollection<in R>, R> Iterable<*>.selectToInstance(destination: C, instance:R): C {
     forEach {
@@ -49,8 +52,6 @@ fun <T> Array<T>.takeFromLastMatching(count: Int, shifting: Int,  predicate: (T)
     return this.slice(lastIndex+ shifting until endIndexExclusive - shifting)
 }
 
-
-
 fun <T> List<T>.takeFromMatch(count: Int, predicate: (T) -> Boolean): List<T> {
     return this.dropWhile { !predicate(it) }
         .take(count+1)
@@ -63,4 +64,14 @@ fun <T> List<T>.indexOfMatch(predicate: (T) -> Boolean): Int {
         }
     }
     return 0
+}
+
+inline fun <reified T> Iterable<*>.filterIsSubInstance(): List<T> {
+    val result = mutableListOf<T>()
+    for (element in this.filterNotNull()){
+        if(element::class.isSubclassOf(T::class)){
+            element.safeCast<T>()?.let { result.add(it) }
+        }
+    }
+    return result
 }

@@ -10,9 +10,10 @@ import po.misc.data.pretty_print.parts.loader.ElementProvider
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.RowOptions
 import po.misc.data.pretty_print.parts.options.NamedTemplate
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderSnapshot
+import po.misc.data.pretty_print.parts.render.KeyParameters
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderParameters
+import po.misc.data.pretty_print.parts.render.RenderSnapshot
 import po.misc.data.pretty_print.templates.TemplateCompanion
 import po.misc.interfaces.named.NamedComponent
 import po.misc.types.token.Tokenized
@@ -20,19 +21,16 @@ import po.misc.types.token.TokenizedResolver
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
-sealed interface TemplatePart<T>: Tokenized<T>{
-
+sealed interface TemplatePart<T>: Tokenized<T>, RenderParameters{
     val enabled: Boolean
     val templateID: NamedTemplate
     val renderableType : RenderableType
-    val keyParameters: KeyRenderParameters
+    val keyParameters: KeyParameters
     val receiverType:TypeToken<T>
     override val typeToken: TypeToken<T> get() = receiverType
-    val index: Int get() = keyParameters.index
+
+   // val index: Int get() = keyParameters.index
     fun copy(usingOptions: CommonRowOptions? = null):TemplatePart<T>
-
-    fun createSnapshot():RenderSnapshot = keyParameters.createSnapshot(this)
-
 
 }
 
@@ -55,7 +53,7 @@ sealed interface RenderableElement<S, T> : TemplatePart<T>, TokenizedResolver<S,
     override val typeToken: TypeToken<T> get() = receiverType
     val dataLoader: DataLoader<S, T>
 
-    fun renderFromSource(marker: RenderMarker, source:S, opts: CommonRowOptions? = null): RenderData
+    fun renderFromSource(marker: RenderMarker, source:S, opts: CommonRowOptions? = null): RenderCanvas
     fun renderFromSource(source:S, opts: CommonRowOptions? = null):String
 }
 
@@ -88,7 +86,7 @@ interface Placeholder<T> : TemplateHost<T, T> {
     fun provideRenderable(element: TemplateHost<T, T>, provider: ReceiverCallable<T, T>? = null):Placeholder<T>
     fun render(opts: CommonRowOptions? = null): String
 
-    fun renderInScope(parameter: RenderParameters):RenderData
+    fun renderInScope(parameter: RenderParameters):RenderCanvas
 
     override fun copy(usingOptions: CommonRowOptions?):Placeholder<T>
     /**

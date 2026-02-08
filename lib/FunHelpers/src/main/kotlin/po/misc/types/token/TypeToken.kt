@@ -2,7 +2,7 @@ package po.misc.types.token
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.PrettyPrint
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.Verbosity
 import po.misc.data.output.output
 import po.misc.data.strings.appendGroup

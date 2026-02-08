@@ -12,7 +12,7 @@ import po.misc.types.token.tokenOf
 import po.test.misc.data.pretty_print.setup.PrettyTest
 import kotlin.test.Test
 
-class TestDecorationPayload : PrettyTest<TestDecorationPayload>(true), Named {
+class TestDecorationPayload : PrettyTest<TestDecorationPayload>(), Named {
 
     override val receiverType: TypeToken<TestDecorationPayload> get() = tokenOf()
 
@@ -36,7 +36,7 @@ class TestDecorationPayload : PrettyTest<TestDecorationPayload>(true), Named {
         val line2 = bitLongerText.toPair()
         val line3 = longerText.toPair()
 
-        val metrics = Decorator.Metrics(20, 40, leftOffset = 0)
+        val metrics = Decorator.Metrics(40, leftOffset = 0)
         val render =   decorator.decorate(listOf(line1, line2, line3), metrics)
         render.output()
 

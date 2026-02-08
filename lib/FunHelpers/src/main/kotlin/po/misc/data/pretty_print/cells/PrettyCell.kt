@@ -5,15 +5,17 @@ import po.misc.data.pretty_print.parts.options.CellOptions
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.PrettyHelper
-import po.misc.data.pretty_print.parts.rendering.CellParameters
+import po.misc.data.pretty_print.parts.render.CellParameters
 import po.misc.data.strings.stringify
+import po.misc.data.text_span.TextSpan
+import po.misc.data.text_span.copyMutable
 import po.misc.types.token.TypeToken
 import kotlin.Any
 
 
 class PrettyCell(
     opts: CellOptions? = null
-): PrettyCellBase<Any>(PrettyHelper.toOptions(opts, plainText), TypeToken<Any>()), SourceLessCell, AnyRenderingCell, PrettyHelper{
+): PrettyCellBase<Any>(PrettyHelper.toOptions(opts, plainText), TypeToken<Any>()), AnyRenderingCell, PrettyHelper{
 
     constructor(presets: CellPresets):this(){
         applyOptions( presets.asOptions())
@@ -23,21 +25,21 @@ class PrettyCell(
     }
 
     override fun render(content: Any, opts: CellOptions?): String {
-        if(!areOptionsExplicit){
-            currentRenderOpts = toOptions(opts, currentRenderOpts)
+        if(!explicitOptions){
+            renderOptions = toOptions(opts, renderOptions)
         }
         val content = content.stringify()
-        return finalizeRender( RenderRecord(content.copyAsStacked(), null, null))
+        return finalizeRender( RenderRecord(content.copyMutable(), null, null))
     }
     fun render(content: Any, optionBuilder: (Options) -> Unit): String{
-        optionBuilder.invoke(currentRenderOpts)
+        optionBuilder.invoke(renderOptions)
         val content = content.stringify()
-        return finalizeRender(RenderRecord(content.copyAsStacked(), null, null))
+        return finalizeRender(RenderRecord(content.copyMutable(), null, null))
     }
 
-    override fun CellParameters.scopedRender(receiver: Any): RenderRecord {
+    override fun CellParameters.renderInScope(receiver: Any): TextSpan {
         val content = receiver.stringify()
-        return finalizeScopedRender(RenderRecord(content.copyAsStacked(), null, null))
+        return finalizeScopedRender(RenderRecord(content.copyMutable(), null, null))
     }
 
     override fun applyOptions(opts: CellOptions?): PrettyCell{

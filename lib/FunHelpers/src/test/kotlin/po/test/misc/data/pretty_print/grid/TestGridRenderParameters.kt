@@ -13,7 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 
-class TestGridRenderParameters : PrettyTest<TestGridRenderParameters>(enableOutput = true) {
+class TestGridRenderParameters : PrettyTest<TestGridRenderParameters>() {
 
     override val receiverType: TypeToken<TestGridRenderParameters> = tokenOf()
 
@@ -37,8 +37,5 @@ class TestGridRenderParameters : PrettyTest<TestGridRenderParameters>(enableOutp
 
         assertEquals(grid.renderPlan.maxWidth, row.planner.maxWidth)
         val render = grid.render(this)
-        row.planner.output(enableOutput)
-        render.length.output()
-        render.output(enableOutput)
     }
 }

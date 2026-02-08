@@ -7,7 +7,8 @@ import po.misc.data.pretty_print.PrettyValueRow
 import po.misc.data.pretty_print.TemplatePart
 import po.misc.data.pretty_print.parts.common.RenderData
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderParameters
 
 sealed interface RenderNode<T>{
 
@@ -21,7 +22,7 @@ sealed interface RenderNode<T>{
     val sourceWidth: Int
 
     fun renderFromSource(source:T, opts: CommonRowOptions?):String
-    fun scopedRender(source: T): RenderData
+    fun scopedRender(source: T): RenderCanvas
     fun copy(usingOptions: CommonRowOptions? = null): RenderNode<T>
 }
 
@@ -54,7 +55,7 @@ sealed class RenderNodeBase<T>(
     }
 
     abstract override fun renderFromSource(source:T, opts: CommonRowOptions?):String
-    abstract override fun scopedRender(source: T): RenderData
+    abstract override fun scopedRender(source: T): RenderCanvas
 
     override fun toString(): String = nodeInfo
     abstract override fun copy(usingOptions: CommonRowOptions? ): RenderNodeBase<T>
@@ -72,7 +73,7 @@ class RowNode<T>(
     }
 
     override fun renderFromSource(source:T, opts: CommonRowOptions?):String = row.render(source, opts)
-    override fun scopedRender(source: T): RenderData = with(row){ renderInScope(source) }
+    override fun scopedRender(source: T): RenderCanvas = with(row){ renderInScope(source) }
     override fun copy(usingOptions: CommonRowOptions? ):RowNode<T> =
         RowNode(host, row.copy(usingOptions), index)
     override fun clear(): Unit = row.planner.clear()
@@ -88,7 +89,7 @@ class ValueRowNode<T>(
         valueRow.planner.keyParams.index = index
     }
     override fun renderFromSource(source:T, opts: CommonRowOptions?):String = valueRow.renderFromSource(source, opts)
-    override fun scopedRender(source: T): RenderData = with(valueRow){ renderInScope(source) }
+    override fun scopedRender(source: T): RenderCanvas = with(valueRow){ renderInScope(source) }
     override fun copy(usingOptions: CommonRowOptions? ):ValueRowNode<T> =
         ValueRowNode(host,  valueRow.copy(), index)
     override fun clear(): Unit = valueRow.planner.clear()
@@ -109,7 +110,7 @@ class ValueGridNode<T, V>(
     }
 
     override fun renderFromSource(source: T, opts: CommonRowOptions?):String = valueGrid.renderFromSource(source, opts)
-    override fun scopedRender(source: T): RenderData = with(valueGrid){ renderInScope(source) }
+    override fun scopedRender(source: T): RenderCanvas = with(valueGrid){ renderInScope(source) }
 
     override fun copy(usingOptions: CommonRowOptions? ):ValueGridNode<T, V> =
         ValueGridNode(host, valueGrid.copy(), index)
@@ -128,7 +129,7 @@ class PlaceholderNode<T>(
 
     override fun render(opt: CommonRowOptions?): String = placeholder.render(opt)
     override fun renderFromSource(source:T, opts: CommonRowOptions?):String = placeholder.renderFromSource(source, opts)
-    override fun scopedRender(source: T): RenderData = placeholder.renderInScope(this)
+    override fun scopedRender(source: T): RenderCanvas = placeholder.renderInScope(this)
 
     override fun copy(usingOptions: CommonRowOptions? ):PlaceholderNode<T> =
         PlaceholderNode(host, placeholder.copy(), index)

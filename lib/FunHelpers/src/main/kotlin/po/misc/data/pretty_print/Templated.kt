@@ -47,6 +47,13 @@ interface Templated<T>: PrettyPrintAuxBuilder, TokenFactory{
        return container.finalizeRow()
     }
 
+    fun createRow(
+        rowId: RowID? = null
+    ): PrettyRow<T> {
+        return PrettyRow(receiverType, rowId)
+    }
+
+
     @PrettyDSL
     fun buildGrid(
         gridID: GridID? = null,

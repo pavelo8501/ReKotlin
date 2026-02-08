@@ -9,7 +9,7 @@ import po.test.misc.data.pretty_print.setup.PrettyTest
 
 
 
-class TestTextTrimmer: PrettyTest<TestTextTrimmer>(true), TextStyler  {
+class TestTextTrimmer: PrettyTest<TestTextTrimmer>(), TextStyler  {
 
     override val receiverType: TypeToken<TestTextTrimmer> = tokenOf()
 

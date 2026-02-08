@@ -90,7 +90,7 @@ fun String.repeat(times: Int, separator: String = SpecialChars.EMPTY): String {
 }
 
 val String.lengthNoAnsi: Int get() {
-    val text = TextStyler.stripAnsi(this)
+    val text = TextStyler.ansi.stripAnsi(this)
   return  text.length
 }
 

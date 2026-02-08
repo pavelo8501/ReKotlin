@@ -1,17 +1,25 @@
 package po.misc.data.strings
 
-import po.misc.data.output.output
+import po.misc.collections.flattenVarargs
+import po.misc.data.Postfix
+import po.misc.data.Separator
+import po.misc.data.TextWrapper
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.StyleCode
 import po.misc.data.styles.TextStyler
-import po.misc.data.text_span.FormattedText
+import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.StyledPair
 import po.misc.data.text_span.TextSpan
+import po.misc.data.text_span.joinSpans
 import kotlin.reflect.KProperty1
+
+
 
 
 sealed class StringifyOptions(
     var prefix:String = "",
     var separator:String,
+
     val styleCode: StyleCode?
 ){
     open val indent: Int = 0
@@ -100,60 +108,36 @@ internal fun  stringification(
 ): TextSpan{
     val prefix = opts.normalizedPrefix()
     val useStyleCode = opts.styleCode
+
+    if(receiver == null){
+       return  StyledPair("Null")
+    }
     return when(receiver){
         is List<*>-> {
-            val formatted = if(opts is ListOptions){
-                FormattedText(opts.header).styleFormatted(opts.styleCode)
-            }else{
-                FormattedText()
-            }
-            for (entry in receiver) {
-                TextStyler.formatKnownTypes(entry)
-
-                formatted.prepend(opts.normalizedPrefix(), opts.styleCode)
-                formatted
-            }
             if(opts is ListOptions){
-                formatted.joinSubEntries(opts)
+                StyledPair(opts.header)
             }else{
-                formatted
+                StyledPair()
             }
         }
-        is String -> {
-            val formattedText = if(useStyleCode != null ){
-                if(opts.preserveAnsi){
-                    TextStyler.applyStyle(receiver, useStyleCode)
-                }else{
-                    TextStyler.style(receiver, useStyleCode)
-                }
-            }else{
-                receiver
-            }
-            FormattedText(receiver, formattedText)
-        }
-        else -> {
-            val formatted = TextStyler.formatKnownTypes(receiver)
-            formatted.styleFormatted(opts.styleCode)
-            if(prefix.isNotBlank()){
-                formatted.prepend(prefix, opts.styleCode)
-            }
-
-            formatted
-        }
+        is String -> StyledPair(receiver)
+        else -> TextStyler.formatKnown(receiver)
     }
 }
 
-fun Any?.stringify(prefix: String? = null, styleCode: StyleCode? = null):TextSpan =
-        stringification(this, StringifyOptions.createForReceiver(this, prefix, styleCode))
+fun Any?.stringify(prefix: String? = null, styleCode: StyleCode? = null):TextSpan {
+   return  TextStyler.formatKnown(this)
+    //stringification(this, StringifyOptions.createForReceiver(this, prefix, styleCode))
+}
 
-fun Any?.stringify(styleCode: StyleCode? = null):TextSpan =
-    stringification(this, StringifyOptions.createForReceiver(this, "", styleCode))
+fun Any?.stringify(styleCode: StyleCode? = null):TextSpan {
+    return TextStyler.formatKnown(this)
+   // stringification(this, StringifyOptions.createForReceiver(this, "", styleCode))
+}
 
-inline fun <reified T: Any> List<T>.stringify(
-    noinline configAction: ListOptions.(T) -> Unit
 
-): TextSpan {
-    val initialRecord = FormattedText()
+inline fun <reified T: Any> List<T>.stringify(noinline configAction: ListOptions.(T) -> Unit): TextSpan {
+    val initialRecord = MutablePair()
     val options = ListOptions()
     forEachIndexed { index, item ->
         if(index == 0){
@@ -161,15 +145,15 @@ inline fun <reified T: Any> List<T>.stringify(
             val header = options.header
             val useStyle =  options.styleCode
             val styledHeader = if(useStyle != null){
-                TextStyler.style(header, useStyle)
+                TextStyler.ansi.style(header, useStyle)
             }else{
                 header
             }
-            initialRecord.append(header, styledHeader, SpecialChars.NEW_LINE)
-            initialRecord.append(stringification(item, options), options)
+            initialRecord.append(header, styledHeader)
+            initialRecord.append(stringification(item, options))
         }else{
             configAction.invoke(options, item)
-            initialRecord.append(stringification(item, options),options)
+            initialRecord.append(stringification(item, options))
         }
     }
     return initialRecord
@@ -181,20 +165,73 @@ fun <T: Any> T.stringifyTree(
     opt: ListOptions? = null
 ): TextSpan{
 
-    val useOptions = opt?: StringifyOptions.defaultIndention
-    fun recursiveRun(initialRecord:FormattedText, receiver :T, property: KProperty1<T, Collection<T>>, styleCode: StyleCode?){
-        val records = property.get(receiver)
-        records.forEach { record ->
-            val formatedEntry = TextStyler.formatKnownTypes(record)
-            formatedEntry.styleFormatted(styleCode)
-            //initialRecord.add(formatedEntry)
-            recursiveRun(formatedEntry, record, property, styleCode)
-        }
-    }
-    val rootEntry = TextStyler.formatKnownTypes(this)
-    rootEntry.styleFormatted(useOptions.styleCode)
-    recursiveRun(rootEntry, this, property, useOptions.styleCode)
-    val result = rootEntry.joinSubEntries(useOptions)
-    return result
+//    val useOptions = opt?: StringifyOptions.defaultIndention
+//    fun recursiveRun(initialRecord:FormattedText, receiver :T, property: KProperty1<T, Collection<T>>, styleCode: StyleCode?){
+//        val records = property.get(receiver)
+//        records.forEach { record ->
+//            val formatedEntry = TextStyler.formatKnown(record)
+//            formatedEntry.styleFormatted(styleCode)
+//            //initialRecord.add(formatedEntry)
+//            recursiveRun(formatedEntry, record, property, styleCode)
+//        }
+//    }
+//    val rootEntry = TextStyler.formatKnown(this)
+//    rootEntry.styleFormatted(useOptions.styleCode)
+//    recursiveRun(rootEntry, this, property, useOptions.styleCode)
+//    val result = rootEntry.joinSubEntries(useOptions)
+    return StyledPair("Refactor")
 }
+
+
+internal fun stringify(vararg parameters : Any?): String{
+   val flattened = parameters.flattenVarargs()
+   return if(flattened.size > 1){
+        flattened.joinToString( SpecialChars.WHITESPACE){ TextStyler.formatKnown(it).styled }
+    }else{
+        TextStyler.formatKnown(flattened.firstOrNull()).styled
+    }
+}
+
+internal fun stringifyToSpan(vararg parameters : Any?): TextSpan{
+    val flattened = parameters.flattenVarargs()
+    return if(flattened.size > 1){
+       val spans = flattened.map {
+            if(it is TextSpan){
+                it
+            }else{
+                TextStyler.formatKnown(it)
+            }
+        }
+        spans.joinSpans(Postfix(SpecialChars.WHITESPACE))
+    }else{
+        TextStyler.formatKnown(flattened.firstOrNull())
+    }
+}
+
+internal fun stringifyToSpan(modifier: TextWrapper, vararg parameters : Any?): TextSpan{
+    val flattened = parameters.flattenVarargs()
+    return if(flattened.size > 1){
+        val spans = flattened.map {
+            if(it is TextSpan){
+                it
+            }else{
+                TextStyler.formatKnown(it)
+            }
+        }
+        spans.joinSpans(Postfix(SpecialChars.WHITESPACE))
+    }else{
+        TextStyler.formatKnown(flattened.firstOrNull())
+    }
+}
+
+internal fun stringify(modifier: TextWrapper, vararg parameters : Any): String{
+    val flattened = parameters.flattenVarargs()
+    return if(flattened.size > 1){
+        flattened.joinToString(modifier){ TextStyler.formatKnown(it).styled }
+    }else{
+        modifier.wrap(TextStyler.formatKnown(flattened.firstOrNull()).styled)
+    }
+}
+
+
 

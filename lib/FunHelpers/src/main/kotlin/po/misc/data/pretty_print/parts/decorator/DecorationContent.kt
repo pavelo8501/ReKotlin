@@ -1,7 +1,12 @@
 package po.misc.data.pretty_print.parts.decorator
 
 import po.misc.data.Styled
+import po.misc.data.pretty_print.parts.render.CanvasLayer
+import po.misc.data.pretty_print.parts.render.RenderCanvas
 import po.misc.data.strings.appendGroup
+import po.misc.data.strings.appendStyled
+import po.misc.data.strings.appendStyledLine
+import po.misc.data.text_span.OrderedText
 import po.misc.data.text_span.TextSpan
 
 /**
@@ -22,29 +27,25 @@ import po.misc.data.text_span.TextSpan
  * - horizontal size is determined exclusively from `lines`,
  *   which represent the actual rendered footprint
  *
- * @param render final composed render output
- * @param lines decoration lines; contains both newly created border spans
+ * @param layer final composed decoration
  * and mutated original content spans
  */
 class DecorationContent(
     val name:String,
-    val contentWidth: Int,
-    val render:TextSpan,
-    val renderedLines: List<TextSpan>,
+    val layer: CanvasLayer,
     val snapshot: Decorator.Snapshot
 ): Styled {
 
-    override val textSpan: TextSpan get() = render
     val status: DecorationStatus = snapshot.status
-    val lines: List<String> get() = render.plain.lines()
+    val lines: List<TextSpan> = layer.lines
+    val contentWidth: Int = layer.lineMaxLen
+    override val textSpan: TextSpan get() = layer
 
-    fun lines():List<String>{
-        return render.styled.lines()
-    }
+
 
     override fun toString(): String {
         return buildString {
-            appendGroup("BorderSnapshot [ ", " ]", ::contentWidth)
+            appendStyled("BorderSnapshot[", ::contentWidth, "]")
         }
     }
 }

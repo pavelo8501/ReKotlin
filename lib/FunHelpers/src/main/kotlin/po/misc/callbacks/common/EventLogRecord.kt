@@ -2,7 +2,7 @@ package po.misc.callbacks.common
 
 import po.misc.context.component.Component
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.parts.LogTracker
 import po.misc.data.logging.procedural.ProceduralEntry
@@ -17,7 +17,7 @@ import java.time.Instant
 
 class EventLogRecord(
     override val context: Component,
-    override val topic: NotificationTopic,
+    override val topic: Topic,
     override val subject: String,
     override val text: String
 ): PrintableBase<EventLogRecord>(this), StructuredLoggable {

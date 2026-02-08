@@ -5,7 +5,6 @@ import po.misc.data.styles.TextStyler
 import po.misc.data.text_span.TextSpan
 import po.misc.data.text_span.buildTextSpan
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -25,43 +24,4 @@ class TestTextSpanBuilder: TextStyler {
         assertTrue{ textSpan.styled.isStyled }
         textSpan.output()
     }
-//
-//    @Test
-//    fun `AppendLine with single value`(){
-//        val textSpan = buildTextSpan {
-//            appendLine(someEnumList)
-//        }
-//        val plainLines = textSpan.plain.lines()
-//        val styledLines = textSpan.plain.lines()
-//        assertEquals(2, plainLines.size)
-//        assertEquals(2, styledLines.size)
-//    }
-//    @Test
-//    fun `AppendLine with lists`(){
-//        val textSpan = buildTextSpan {
-//            appendLine(listOfStrings)
-//        }
-//        val plainLines = textSpan.plain.lines()
-//        val styledLines = textSpan.plain.lines()
-//        assertEquals(3, plainLines.size)
-//        assertEquals(3, styledLines.size)
-//    }
-//    @Test
-//    fun `AppendLine with property single value`(){
-//        val textSpan = buildTextSpan {
-//            appendLine(::someEnum)
-//        }
-//        textSpan.output()
-//    }
-//    @Test
-//    fun `AppendLine with properties`(){
-//        val textSpan = buildTextSpan {
-//            appendLine(::someEnumList)
-//        }
-//        textSpan.output()
-//        val plainLines = textSpan.plain.lines()
-//        val styledLines = textSpan.styled.lines()
-//        assertEquals(2, plainLines.size)
-//        assertEquals(2, styledLines.size)
-//    }
 }

@@ -1,6 +1,7 @@
 package po.misc.data.strings
 
 import po.misc.collections.flattenVarargs
+import po.misc.data.TextWrapper
 import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.StyleCode
 import po.misc.data.styles.TextStyler
@@ -28,9 +29,9 @@ import kotlin.reflect.KProperty0
  * @return this [StringBuilder] for chaining
  */
 fun StringBuilder.appendStyledLine(parameter: Any, styleCode: StyleCode? = null): StringBuilder{
-    val formatted = TextStyler.formatKnownTypes(parameter)
+    val formatted = TextStyler.formatKnown(parameter)
     val text = styleCode
-        ?.let { TextStyler.style(formatted.plain, it) }
+        ?.let { TextStyler.ansi.style(formatted.plain, it) }
         ?: formatted.styled
     return appendLine(text)
 }
@@ -56,11 +57,13 @@ fun StringBuilder.appendStyledLine(parameter: Any, styleCode: StyleCode? = null)
  * @return this [StringBuilder] for chaining
  */
 fun StringBuilder.appendStyled(vararg parameters: Any): StringBuilder{
-    val flattened = parameters.flattenVarargs()
-    val text = flattened.joinToString(separator = "") {
-        TextStyler.formatKnownTypes(it).styled
-    }
-    return append(text)
+    val string = stringify(*parameters)
+    return append(string)
+}
+
+fun StringBuilder.appendStyled(textWrapper: TextWrapper, vararg parameters: Any): StringBuilder{
+    val string = stringify(textWrapper, *parameters)
+    return append(string)
 }
 
 /**
@@ -86,7 +89,7 @@ fun StringBuilder.appendStyled(vararg parameters: Any): StringBuilder{
 fun StringBuilder.appendStyled(styleCode: StyleCode, vararg parameters: Any): StringBuilder{
     val flattened = parameters.flattenVarargs()
     val text = flattened.joinToString(separator = "") {
-        TextStyler.style(TextStyler.formatKnownTypes(it).plain,styleCode)
+        TextStyler.ansi.style(TextStyler.formatKnown(it).plain,styleCode)
     }
     return append(text)
 }
@@ -124,7 +127,7 @@ fun StringBuilder.appendGroup(prefix: String, postfix: String = "", vararg props
     val propStr = props.toList().joinToString(separator= ", ") {property->
         val name = property.name.toDisplayName()
         val value =  property.get()
-        val formated = TextStyler.formatKnownTypes(value)
+        val formated = TextStyler.formatKnown(value)
         "${name}: $formated"
     }
     return append("$prefix$propStr$postfix ")
@@ -134,7 +137,7 @@ fun StringBuilder.appendVertical(header: String, footer: String,  vararg props: 
     val propStr = props.toList().joinToString(separator = SpecialChars.NEW_LINE) { property->
         val name = property.name.toDisplayName()
         val value =  property.get()
-        val formated = TextStyler.formatKnownTypes(value)
+        val formated = TextStyler.formatKnown(value)
         "${name}: $formated "
     }
     appendLine("$header $propStr $footer?:")
@@ -145,7 +148,7 @@ fun StringBuilder.appendVertical(header: String, vararg props: KProperty0<*>):St
     val propStr = props.toList().joinToString(separator = SpecialChars.NEW_LINE) { property->
         val name = property.name.toDisplayName()
         val value =  property.get()
-        val formated = TextStyler.formatKnownTypes(value)
+        val formated = TextStyler.formatKnown(value)
         "${name}: $formated "
     }
     appendLine("$header $propStr")

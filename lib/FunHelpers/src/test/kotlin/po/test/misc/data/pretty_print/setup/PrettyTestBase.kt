@@ -1,14 +1,9 @@
 package po.test.misc.data.pretty_print.setup
 
 import po.misc.collections.repeatBuild
+import po.misc.data.logging.Verbosity
 import po.misc.data.pretty_print.Templated
-import po.misc.data.pretty_print.parts.common.RenderData
-import po.misc.data.pretty_print.parts.options.GridID
-import po.misc.data.pretty_print.parts.options.RowID
-import po.misc.data.pretty_print.parts.rendering.RenderSnapshot
-import po.misc.data.pretty_print.parts.rows.Layout
 import po.misc.data.styles.TextStyler
-import po.misc.data.text_span.StyledPair
 import po.misc.interfaces.named.Named
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
@@ -18,6 +13,7 @@ import java.time.Instant
 
 abstract class PrettyTestBase : Templated<PrintableRecord>, TokenFactory {
 
+    protected var verbosity: Verbosity = Verbosity.Debug
     override val receiverType: TypeToken<PrintableRecord> = tokenOf()
 
     enum class EntyType { Type1, Type2, Type3, Type4 }
@@ -74,7 +70,7 @@ abstract class PrettyTestBase : Templated<PrintableRecord>, TokenFactory {
     }
 }
 
-abstract class PrettyTest<T>(protected var enableOutput:Boolean = true): Templated<T>, TextStyler, Named {
+abstract class PrettyTest<T>(protected var testVerbosity: Verbosity = Verbosity.Debug): Templated<T>, TextStyler, Named {
 
     override val name: String get() = receiverType.typeName
 

@@ -12,7 +12,7 @@ class TestTimeHelpers: TimeHelper {
     @Test
     fun `Helpers time returned`(){
 
-        nowTimeUtc().output("nowTimeUtc:", Colour.Cyan)
+        nowTime().output("nowTimeUtc:", Colour.Cyan)
         nowTime(3).output("nowTime(hoursOffset=3):", Colour.Cyan)
         nowDateTimeUtc().output("nowDateTimeUtc:", Colour.Cyan)
 

@@ -6,13 +6,22 @@ import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyRowBase
 import po.misc.data.pretty_print.cells.AnyRenderingCell
 import po.misc.data.pretty_print.cells.PrettyCellBase
+import po.misc.data.pretty_print.cells.RenderableCell
 import po.misc.data.pretty_print.cells.SourceAwareCell
 import po.misc.data.pretty_print.cells.StaticRenderingCell
 import po.misc.data.pretty_print.parts.decorator.Decorator
 import po.misc.data.pretty_print.parts.common.RenderData
+import po.misc.data.pretty_print.parts.common.RenderHooks
 import po.misc.data.pretty_print.parts.options.Margins
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.options.Orientation
+import po.misc.data.pretty_print.parts.render.CanvasLayer
+import po.misc.data.pretty_print.parts.render.KeyParameters
+import po.misc.data.pretty_print.parts.render.LayerType
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderParameters
+import po.misc.data.pretty_print.parts.render.RenderSnapshot
+import po.misc.data.text_span.OrderedText
+import po.misc.data.text_span.TextSpan
 import po.misc.data.text_span.joinSpans
 import po.misc.interfaces.named.NamedComponent
 import po.misc.types.token.TypeToken
@@ -20,24 +29,25 @@ import po.misc.types.token.safeCast
 
 class RowRenderPlanner<T>(
     val host: PrettyRowBase<*, T>,
-    val keyParams :KeyRenderParameters = KeyRenderParameters()
-): MetaProvider, NamedComponent, RenderParameters by keyParams{
+    val keyParams :KeyParameters = KeyParameters()
+): NamedComponent, RenderParameters by keyParams{
 
     val receiverType: TypeToken<T> get() = host.receiverType
     override var verbosity: Verbosity = Verbosity.Warnings
 
     private val nodesBacking: MutableList<RowRenderNode<*>> = mutableListOf()
     private val nodesTotalWidth:Int get() {
-      //  val spaceOccupiedByBorders = nodes.sumOf { it.innerBorders.displaySize }
         val nodesContentWidth = nodes.sumOf { it.contentWidth }
         return nodesContentWidth
     }
+
+    val hooks: RenderHooks<RowRenderPlanner<T>> = RenderHooks(TypeToken<RowRenderPlanner<T>>())
 
     val nodes: List<RowRenderNode<*>> get() = nodesBacking
     val decorator: Decorator = Decorator()
     val margins: Margins = Margins(0)
 
-    override val metaText: String get() {
+    val metaTex: String get() {
        return buildString {
            appendLine("Orientation: $orientation ")
            appendLine("Max width: $maxWidth ")
@@ -47,6 +57,7 @@ class RowRenderPlanner<T>(
 
     var isConfigured:Boolean = false
     override val name: String get() = "RowRenderPlanner<${receiverType.typeName}>"
+    override val onBehalfName: TextSpan get() = host.templateID.name.toPair()
 
     init {
         keyParams.onUpdated {
@@ -109,7 +120,7 @@ class RowRenderPlanner<T>(
         }
     }
 
-    private fun createCompact(cells: List<PrettyCellBase<*>>){
+    private fun createCompact(cells: List<RenderableCell>){
         val count = cells.size
         cells.forEachIndexed { index, cell ->
             val node = when (cell) {
@@ -122,7 +133,7 @@ class RowRenderPlanner<T>(
 
         }
     }
-    private fun createStretch(cells: List<PrettyCellBase<*>>){
+    private fun createStretch(cells: List<RenderableCell>){
         val count = cells.size
         cells.forEachIndexed { index, cell ->
             val node = when (cell) {
@@ -139,7 +150,7 @@ class RowRenderPlanner<T>(
             tryComputeMargins()
         }
     }
-    private fun createCentered(cells: List<PrettyCellBase<*>>){
+    private fun createCentered(cells: List<RenderableCell>){
         val count = cells.size
         cells.forEachIndexed { index, cell ->
             val node = when (cell) {
@@ -152,7 +163,8 @@ class RowRenderPlanner<T>(
         }
     }
 
-    fun createRenderNodes(cells: List<PrettyCellBase<*>>, hostParameters: RenderParameters? = null): List<RowRenderNode<*>> {
+    fun createSnapshot(): RenderSnapshot = keyParams.createSnapshot(this)
+    fun createRenderNodes(cells: List<RenderableCell>, hostParameters: RenderParameters? = null): List<RowRenderNode<*>> {
         if(hostParameters != null){
             keyParams.implyConstraints(hostParameters)
         }
@@ -182,15 +194,19 @@ class RowRenderPlanner<T>(
         return nodes.filterIsInstance<StaticRenderNode>()
     }
 
-    fun finalizeRender():RenderData{
+    fun finalizeRender(): RenderCanvas{
+        val canva = RenderCanvas(LayerType.Render)
         applyInnerBorders()
         keyParams.updateWidth(nodesTotalWidth)
+        val nodeRenderCanvas  = nodes.map { it.canvas }
+        hooks.onRendered.trigger(this)
         shapeRow()
-        val renderRecords = nodes.map { it.renderRecord }
-        val decoration = decorator.decorate(renderRecords.joinSpans(orientation), keyParams.createSnapshot(host))
+        canva.mergeAllToActiveLayer(nodeRenderCanvas)
+        val decoration = decorator.decorate(canva, this)
+        canva.addLayer(decoration.layer, disableExistent = true)
         keyParams.updateWidth(decoration.contentWidth)
         nodes.forEach { it.finalizeRender() }
-        return RenderData(keyParams.createSnapshot(host), decoration)
+        return canva
     }
     fun clear(){
         nodes.forEach { it.finalizeRender() }
@@ -201,7 +217,7 @@ class RowRenderPlanner<T>(
     }
     override fun toString(): String = buildString {
         append("RowRenderPlanner ")
-        append(metaText)
+        append(metaTex)
     }
 
 }

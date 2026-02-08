@@ -32,7 +32,7 @@ data class CastLookupParameters(
     val receiverType: TypeToken<*>? = null,
     val targetType: TypeToken<*>? = null,
 ){
-    val comparingToUpper: String = comparingTo.firstCharUppercase()?:""
+    val comparingToUpper: String = comparingTo.firstCharUppercase()
 }
 
 @PublishedApi
@@ -62,7 +62,6 @@ internal fun  TokenizedResolver<*,*>.tokenizedParams(
 ):CastLookupParameters{
    return CastLookupParameters(this::class, targetClass, comparingTo, targetType)
 }
-
 
 inline fun <reified T: TokenizedResolver<RT, VT>, RT, VT> TokenizedResolver<*, *>.safeCast(
     sourceType: TypeToken<RT>,

@@ -45,7 +45,7 @@ class TestPrettyRow : PrettyTestBase(){
         }
         val prettyRow = PrettyRow(staticCells)
         val render = prettyRow.renderAny(cell1Text, cell2Text)
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue { render.contains(cell1Text) && render.contains(cell2Text) }
 
         staticCells = 2.repeatBuild {
@@ -69,7 +69,7 @@ class TestPrettyRow : PrettyTestBase(){
             add(cell2Text)
         }
         val render = prettyRow.renderAny(inputList)
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue { render.contains(cell1Text) && render.contains(cell2Text) }
         staticCells = 2.repeatBuild {
             StaticCell(emptyString)
@@ -97,7 +97,7 @@ class TestPrettyRow : PrettyTestBase(){
         val prettyRow = PrettyRow<PrintableRecord>()
         prettyRow.initCells(staticCells)
         val render = prettyRow.render(printableRecord)
-        render.output(enableOutput)
+        render.output(verbosity)
         assertTrue { render.contains(printableRecord.name) }
     }
 

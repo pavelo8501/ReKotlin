@@ -3,7 +3,7 @@ package po.misc.debugging.stack_tracer
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.output.output
 import po.misc.debugging.classifier.HelperRecord
 import po.misc.debugging.classifier.KnownHelpers
@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
 class NotificationCondition(
-    val topic: NotificationTopic,
+    val topic: Topic,
     val code: Int
 )
 
@@ -65,14 +65,14 @@ class TraceResolver(
         resolvedCallback?.invoke(callSite)
     }
 
-    private fun checkIfResolve(topic: NotificationTopic, code: Int) {
+    private fun checkIfResolve(topic: Topic, code: Int) {
         val found = conditions.firstOrNull { it.topic == topic && it.code == code }
         if (found != null) {
             resolve("checkIfResolve", true)
         }
     }
 
-    private fun shouldResolve(topic: NotificationTopic): Boolean {
+    private fun shouldResolve(topic: Topic): Boolean {
         return conditions.any { it.topic == topic }
     }
 
@@ -84,7 +84,7 @@ class TraceResolver(
         resolvedCallback = callback
     }
 
-    fun resolveTraceWhen(topic: NotificationTopic, code: Int = 0) {
+    fun resolveTraceWhen(topic: Topic, code: Int = 0) {
         conditions.add(NotificationCondition(topic, code))
     }
 

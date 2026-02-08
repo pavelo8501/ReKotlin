@@ -18,6 +18,7 @@ import kotlin.test.assertTrue
 
 class TestPreparedGridRendering : PrettyTestBase(){
 
+
     private val record = createRecord()
     private val preSaved = prepareValueGrid(PrintableRecord::subClass){
         buildRow(Row.SubTemplateRow) {
@@ -84,6 +85,6 @@ class TestPreparedGridRendering : PrettyTestBase(){
         }
         val render = grid.render(record)
         val lines = render.lines()
-        render.output(enableOutput)
+        render.output(verbosity)
     }
 }

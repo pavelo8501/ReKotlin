@@ -3,7 +3,7 @@ package po.misc.data.logging.models
 
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredBase
 import po.misc.data.logging.parts.KeyValue
 import po.misc.data.logging.parts.LogTracker
@@ -13,7 +13,7 @@ class LogMessage(
     override val context: TraceableContext,
     override val subject: String,
     override val text: String,
-    override val topic: NotificationTopic,
+    override val topic: Topic,
     val  withTracker: LogTracker =  LogTracker.Disabled,
 ): StructuredBase(Notification(context, subject, text, topic)) {
 

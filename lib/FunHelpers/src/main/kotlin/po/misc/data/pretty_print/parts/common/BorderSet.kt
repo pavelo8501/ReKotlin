@@ -15,7 +15,7 @@ interface BorderSet{
     }
 }
 
-interface BorderInitializer: BorderSet{
+interface BorderContainer: BorderSet{
 
     private fun matchExistent(position: BorderPosition):TaggedSeparator<BorderPosition>?{
         return separatorSet.firstOrNull { it.tag== position }

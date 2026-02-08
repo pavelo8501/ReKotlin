@@ -3,7 +3,7 @@ package po.test.misc.data.logging
 import po.misc.context.component.Component
 import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.parts.LogTracker
@@ -20,22 +20,22 @@ abstract class LoggerTestBase: Component {
             processor.logData(logMessage)
             return logMessage
         }
-        fun emmit(subject: String,  text: String, topic: NotificationTopic = NotificationTopic.Info){
+        fun emmit(subject: String,  text: String, topic: Topic = Topic.Info){
             when(topic){
-                NotificationTopic.Info -> info(subject, text)
-                NotificationTopic.Warning -> {
+                Topic.Info -> info(subject, text)
+                Topic.Warning -> {
 
                     val warning = warning(subject, text, LogTracker.Enabled)
                     processor.logData(warning)
                 }
-                NotificationTopic.Exception -> warn(subject, Exception(text))
-                NotificationTopic.Debug -> debug(subject,  text)
+                Topic.Exception -> warn(subject, Exception(text))
+                Topic.Debug -> debug(subject,  text)
             }
         }
 
         fun <R: Any> resulting(result: R, beforeResult: ((ProceduralTestComponent)-> String)? = null) : R{
             val message = beforeResult?.invoke(this)
-            emmit("warning", message?:"Generic warn message", NotificationTopic.Warning)
+            emmit("warning", message?:"Generic warn message", Topic.Warning)
             return result
         }
 
@@ -48,7 +48,7 @@ abstract class LoggerTestBase: Component {
             for (i in 1..count){
                 if(i == willWarn){
                     warn("TestWarning", "Emitting warning on count $i")
-                    val warning = notification("TestWarning", "Emitting warning on count $i", NotificationTopic.Warning)
+                    val warning = notification("TestWarning", "Emitting warning on count $i", Topic.Warning)
                     processor.logData(warning.toLogMessage())
                 }
                 result.add("string_$i")
@@ -66,13 +66,13 @@ abstract class LoggerTestBase: Component {
         fun generateMessage(
             subjectPostfix: String,
             postfix: String,
-            topic: NotificationTopic = NotificationTopic.Info
+            topic: Topic = Topic.Info
         ): LogMessage{
             val message = when(topic){
-                NotificationTopic.Info ->  infoMsg("Subject_$subjectPostfix", "Generic message $postfix")
-                NotificationTopic.Warning -> warning("Warning_$subjectPostfix", "Generic warning $postfix")
-                NotificationTopic.Debug->{  debugMsg("Debug_$subjectPostfix", "Generic debug $postfix")  }
-                NotificationTopic.Exception->{ message("Exception_$subjectPostfix", "Generic debug $postfix", topic) }
+                Topic.Info ->  infoMsg("Subject_$subjectPostfix", "Generic message $postfix")
+                Topic.Warning -> warning("Warning_$subjectPostfix", "Generic warning $postfix")
+                Topic.Debug->{  debugMsg("Debug_$subjectPostfix", "Generic debug $postfix")  }
+                Topic.Exception->{ message("Exception_$subjectPostfix", "Generic debug $postfix", topic) }
             }
             return message
         }
@@ -80,7 +80,7 @@ abstract class LoggerTestBase: Component {
         fun generateMessages(
             postfix: String,
             count: Int = 1,
-            topic: NotificationTopic = NotificationTopic.Info
+            topic: Topic = Topic.Info
         ): List<LogMessage> {
 
             val result = mutableListOf<LogMessage>()

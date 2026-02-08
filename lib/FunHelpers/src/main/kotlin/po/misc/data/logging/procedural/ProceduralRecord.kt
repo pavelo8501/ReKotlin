@@ -3,7 +3,7 @@ package po.misc.data.logging.procedural
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.Loggable
 import po.misc.data.logging.LoggableTemplate
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.factory.toLogMessage
 import po.misc.data.logging.models.LogMessage
@@ -45,7 +45,7 @@ import java.time.Instant
  * ```
  *
  * @property context the originating [TraceableContext] from which this record was emitted
- * @property topic the [NotificationTopic] describing the severity or intent of the record
+ * @property topic the [Topic] describing the severity or intent of the record
  * @property subject the logical subject or label for this record (e.g., "Parsing Config")
  * @property text the human-readable message text for the record
  * @property created the timestamp marking when this record was created
@@ -68,7 +68,7 @@ class ProceduralRecord(
     override val subject: String = logRecord.subject
     override val text: String = logRecord.text
     override val created: Instant = logRecord.created
-    override val topic: NotificationTopic = logRecord.topic
+    override val topic: Topic = logRecord.topic
 
     private var currentIndentLevel: Int = 0
 

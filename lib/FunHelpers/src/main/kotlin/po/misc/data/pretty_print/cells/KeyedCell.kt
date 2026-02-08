@@ -2,7 +2,6 @@ package po.misc.data.pretty_print.cells
 
 import po.misc.callbacks.callable.CallableCollection
 import po.misc.callbacks.callable.ProviderProperty
-import po.misc.collections.asList
 import po.misc.data.pretty_print.parts.cells.RenderRecord
 import po.misc.data.pretty_print.parts.loader.DataLoader
 import po.misc.data.pretty_print.parts.loader.toElementProvider
@@ -11,13 +10,12 @@ import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.CellPresets
 import po.misc.data.pretty_print.parts.options.Options
 import po.misc.data.pretty_print.parts.options.Style
-import po.misc.data.pretty_print.parts.rendering.CellParameters
-import po.misc.data.strings.ElementOptions
+import po.misc.data.pretty_print.parts.render.CellParameters
 import po.misc.data.strings.appendParam
 import po.misc.data.strings.stringify
-import po.misc.data.styles.SpecialChars
-import po.misc.data.text_span.FormattedText
 import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.TextSpan
+import po.misc.data.text_span.copyMutable
 import po.misc.functions.CallableKey
 import po.misc.types.token.TokenFactory
 import po.misc.types.token.TypeToken
@@ -42,7 +40,7 @@ class KeyedCell<T>(
     init {
         dataLoader.apply(callable)
         dataLoader[CallableKey.Property]?.let {
-            keyText = it.displayName.styled
+            keyText = it.styledName.styled
         }
     }
 
@@ -54,8 +52,8 @@ class KeyedCell<T>(
     }
 
     private fun resolveReceiver(source: T, opts: CellOptions?):RenderRecord{
-        if(!areOptionsExplicit){
-            currentRenderOpts = toOptions(opts, currentRenderOpts)
+        if(!explicitOptions){
+            renderOptions = toOptions(opts, renderOptions)
         }
         val valueList =  resolveValues(source)
         val styled = MutablePair()
@@ -67,29 +65,27 @@ class KeyedCell<T>(
         return keyText?.let {
             createKeyed(styled, it)
         }?:run {
-            RenderRecord(styled.copyAsStacked(), null, null)
+            RenderRecord(styled.copyMutable(), null, null)
         }
     }
 
     override fun render(source: T, opts: CellOptions?): String {
-
         val renderRecord = resolveReceiver(source, opts)
         return finalizeRender(renderRecord)
     }
 
     fun render(source:T, optionBuilder: (Options) -> Unit): String{
-        optionBuilder.invoke(currentRenderOpts)
-        areOptionsExplicit = true
+        optionBuilder.invoke(renderOptions)
+        explicitOptions = true
         return render(source)
     }
 
-    override fun CellParameters.scopedRender(receiver: T): RenderRecord {
+    override fun CellParameters.renderInScope(receiver: T): TextSpan {
         val renderRecord = resolveReceiver(receiver, null)
         return finalizeScopedRender(renderRecord)
     }
 
     override fun applyOptions(opts: CellOptions?): KeyedCell<T>{
-
         val options = PrettyHelper.toOptionsOrNull(opts)
         if(options != null){
             setOptions(options)

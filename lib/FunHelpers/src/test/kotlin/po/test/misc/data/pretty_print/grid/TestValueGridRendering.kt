@@ -1,5 +1,6 @@
 package po.test.misc.data.pretty_print.grid
 
+import po.misc.data.logging.Verbosity
 import po.misc.data.output.output
 import po.misc.data.pretty_print.PrettyRow
 import po.misc.data.pretty_print.PrettyValueGrid
@@ -17,7 +18,8 @@ import kotlin.test.assertTrue
 
 class TestValueGridRendering :PrettyTestBase(){
 
-    class SomeClass(val name: String = "SomeClass")
+    private class SomeClass(val name: String = "SomeClass")
+
     private  val inTestEngine = InTestDSL()
     private val some = SomeClass()
     private val someClassGrid = buildPrettyGrid<SomeClass> {
@@ -41,7 +43,7 @@ class TestValueGridRendering :PrettyTestBase(){
        }
         val report = ReportClass(entryCount =  10)
         val render =  grid.render(report)
-        render.output(enableOutput)
+        render.output(verbosity)
     }
 
     @Test
@@ -61,7 +63,7 @@ class TestValueGridRendering :PrettyTestBase(){
             assertEquals(2, row.cells.size, "$row cells count different")
         }
         val render =  grid.render(this)
-        render.output(enableOutput)
+        render.output(verbosity)
         val lines = render.lines()
         assertEquals(1, lines.size)
         assertTrue("Render has an empty line") { lines[0].contains(some.name) }
@@ -76,7 +78,7 @@ class TestValueGridRendering :PrettyTestBase(){
             }
         }
         val render = grid.render(this)
-        render.output(enableOutput)
+        render.output(verbosity)
         val lines = render.lines()
         assertEquals(2, lines.size)
         assertTrue("Line from someClassGrid not rendered") { lines[0].contains(some.name) }

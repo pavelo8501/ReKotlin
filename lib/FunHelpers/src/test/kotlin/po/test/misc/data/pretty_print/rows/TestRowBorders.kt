@@ -22,7 +22,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 
-class TestRowBorders : PrettyTest<TestRowBorders>(true) {
+class TestRowBorders : PrettyTest<TestRowBorders>() {
 
     private class SubClass(val name:String = "SubClass")
     

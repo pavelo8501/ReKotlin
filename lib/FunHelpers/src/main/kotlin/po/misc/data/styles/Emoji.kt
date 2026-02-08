@@ -12,7 +12,7 @@ enum class Emoji(val symbol: String): TextContaining {
     CHECK("✅"),
     CROSS("❌"),
     EXCLAMATION("❗"),
-    INFO("ℹ️"),
+    Info("ℹ️"),
     WARNING("⚠️"),
     STAR("⭐"),
     SPARKLES("✨"),
@@ -40,4 +40,8 @@ enum class Emoji(val symbol: String): TextContaining {
 
     override fun asText(): String =  symbol
     override fun toString(): String = symbol
+
+    fun prepend(text: String): String = "$symbol $text"
+    fun append(text: String): String = "$text $symbol"
+
 }

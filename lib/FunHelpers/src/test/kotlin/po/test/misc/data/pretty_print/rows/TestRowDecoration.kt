@@ -20,11 +20,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class TestRowDecoration: PrettyTest<TestRowDecoration>(true){
+class TestRowDecoration: PrettyTest<TestRowDecoration>(){
     private class SubClass(val name: String = "SubClass", val value: Int = 300)
 
     override val receiverType: TypeToken<TestRowDecoration> = tokenOf()
-
 
     private val stretchedOption = RowOptions{
         layout = Layout.Stretch
@@ -34,7 +33,6 @@ class TestRowDecoration: PrettyTest<TestRowDecoration>(true){
         layout = Layout.Compact
         borders(BorderPresets.Box)
     }
-
 
     private val shortText = "Text 1"
     private val shortText2 = "Text 2"
@@ -61,7 +59,7 @@ class TestRowDecoration: PrettyTest<TestRowDecoration>(true){
         }
         val render = grid.render(this)
         val lines = render.lines()
-        render.output(enableOutput)
+        render.output(testVerbosity)
         val firstLine = lines.first()
         val lastLine = lines.last()
         assertEquals(6, lines.size)
@@ -85,6 +83,6 @@ class TestRowDecoration: PrettyTest<TestRowDecoration>(true){
         assertEquals(Layout.Compact, delegate.keyParameters.layout)
         val render = grid.render(this)
         val lines = render.lines()
-        render.output(enableOutput)
+        render.output(testVerbosity)
     }
 }

@@ -11,7 +11,7 @@ data class RenderPlanSnapshot (
     val renderPlan: RenderPlan<*, *>
 ): PrettyPrint{
 
-    val displayName: TextSpan = renderPlan.displayName
+    val displayName: TextSpan = renderPlan.styledName
     private val rowSize = renderPlan[PrettyRow].size
     val rowsCount: String get() = "${PrettyRow.prettyName}: $rowSize"
     val valueGridsSize :Int = renderPlan[PrettyValueGrid].size

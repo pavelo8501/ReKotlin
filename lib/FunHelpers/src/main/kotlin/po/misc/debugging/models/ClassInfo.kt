@@ -1,7 +1,9 @@
 package po.misc.debugging.models
 
 import po.misc.data.PrettyPrint
+import po.misc.data.strings.joinToString
 import po.misc.data.styles.Colour
+import po.misc.data.styles.SpecialChars
 import po.misc.data.styles.colorize
 import po.misc.debugging.ClassResolver
 import po.misc.debugging.stack_tracer.StackFrameMeta
@@ -10,6 +12,20 @@ import po.misc.types.token.GenericInfo
 import po.misc.types.token.TypeToken
 import kotlin.reflect.KClass
 
+
+data class ClassMeta(
+    val simpleName: String,
+    val genericParams: List<GenericInfo>,
+): PrettyPrint{
+
+    private val genericParamText: String get(){
+        if(genericParams.isEmpty()){
+            return SpecialChars.EMPTY
+        }
+        return genericParams.joinToString(prefix = "<", postfix = ">", separator = ", "){ it.formattedString }
+    }
+    override val formattedString: String get() = "${simpleName.colorize(Colour.Yellow)}$genericParamText"
+}
 
 data class ClassInfo(
     val kClass: KClass<*>,
@@ -60,10 +76,7 @@ data class ClassInfo(
             simpleName
         }
     }
-
-
     val genericInfo: List<GenericInfo> = genericInfoBacking
-
     var stackFrame: StackFrameMeta? = null
 
     constructor(
@@ -104,7 +117,7 @@ data class ClassInfo(
     }
 
     fun addParamInfo(parameterName: String,  typeToken: TypeToken<*>): GenericInfo{
-        val info = GenericInfo(parameterName, typeToken.kType, ClassResolver.classInfo(typeToken.kClass))
+        val info = GenericInfo(parameterName, typeToken.simpleName,typeToken.isNullable)
         genericInfoBacking.add(info)
         return info
     }

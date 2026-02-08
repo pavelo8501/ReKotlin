@@ -71,7 +71,7 @@ sealed class FunctionCallableBase<T, R>(
     val options: LambdaOptions = LambdaOptions.Listen
     override val callableType: CallableType = Sync
     override val name: String = callableMeta.functionName
-    override val displayName: TextSpan = StyledPair(name)
+    override val styledName: TextSpan = StyledPair(name)
 
     protected fun makeCall(onError: ((CallSiteReport) -> Unit)? = null,  block: ()-> R):R{
         return try {
@@ -147,7 +147,7 @@ class PropertyCallable<T, R>(
     override var callableType: PropertyKind = Readonly
 
     override val name: String = property.name
-    override val displayName: StyledPair =  StyledPair(name,  property.displayName)
+    override val styledName: StyledPair =  StyledPair(name,  property.displayName)
     override val callableList: List<PropertyCallable<T, R>> = this.asList()
 
     init {
@@ -188,7 +188,7 @@ class ProviderProperty<T, R>(
     override var callableType: PropertyKind = Readonly
 
     override val name: String = property.name
-    override val displayName: StyledPair = StyledPair(name, property.displayName)
+    override val styledName: StyledPair = StyledPair(name, property.displayName)
     override val callableList: List<ProviderProperty<T, R>> = this.asList()
 
     init {

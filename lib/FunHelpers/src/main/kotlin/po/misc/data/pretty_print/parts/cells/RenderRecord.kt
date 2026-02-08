@@ -1,18 +1,24 @@
 package po.misc.data.pretty_print.parts.cells
 
+import po.misc.data.TextWrapper
 import po.misc.data.pretty_print.parts.common.ExtendedString
 import po.misc.data.pretty_print.parts.common.Separator
-import po.misc.data.styles.TextStyler
 import po.misc.data.text_span.MutablePair
+import po.misc.data.text_span.MutableSpan
+import po.misc.data.text_span.MutableSpanBase
+import po.misc.data.text_span.SpanRole
 import po.misc.data.text_span.TextSpan
-import po.misc.data.text_span.prepend
+import po.misc.data.text_span.asMutable
 
 
 class RenderRecord(
-    val value: MutablePair,
-    val key : MutablePair?,
+    initialValue: TextSpan,
+    initialKey : MutablePair?,
     separatorString: ExtendedString?
-): TextSpan {
+): MutableSpanBase(){
+
+    val value: MutablePair = initialValue.asMutable()
+    val key : MutablePair? = initialKey?.asMutable()
 
     val separator: Separator = Separator(separatorString)
 
@@ -30,30 +36,29 @@ class RenderRecord(
             value.styled
         }
     }
-    val hasKey: Boolean = key != null
 
-    fun appendKey(text: String): Unit{
-        key?.append(text)
-    }
-    fun prependKey(text: String): Unit{
-        key?.prepend(text)
-    }
-    fun append(text: String){
-        value.append(text)
-    }
-    fun prepend(text: String){
+    val hasKey: Boolean = key != null
+    override fun prepend(other: TextSpan) {
         if(key != null){
-            prependKey(text)
+            key.prepend(other)
         }else{
-            value.prepend(text)
+            value.prepend(other)
         }
     }
-    fun change(plainText: String, styledText:String = plainText){
+    override fun append(other: TextSpan) {
+        value.append(other)
+    }
+
+    override fun change(other: TextSpan): RenderRecord{
         if(key != null){
-            key.change(plainText, styledText)
+            key.change(other)
         }else{
-            value.change(plainText, styledText)
+            value.change(other)
         }
+        return this
+    }
+    override fun copy(newRole: SpanRole?): RenderRecord {
+        return RenderRecord(value, key, separator)
     }
     override fun toString(): String = plain
 }

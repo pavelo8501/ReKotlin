@@ -2,8 +2,7 @@ package po.misc.data.pretty_print.parts.common
 
 import po.misc.data.Styled
 import po.misc.data.pretty_print.parts.decorator.DecorationContent
-import po.misc.data.pretty_print.parts.rendering.RenderSnapshot
-import po.misc.data.text_span.MutableSpan
+import po.misc.data.pretty_print.parts.render.RenderSnapshot
 import po.misc.data.text_span.TextSpan
 
 
@@ -23,8 +22,8 @@ class RenderData(
     val snapshot: RenderSnapshot,
     val decorationContent: DecorationContent
 ): Styled {
-    val render: TextSpan get() = decorationContent.render
-    val renderedLines : List<TextSpan> get() = decorationContent.renderedLines
+    val render: TextSpan get() = decorationContent.layer
+
     override val textSpan: TextSpan get() = render
     override fun toString(): String {
         return buildString {

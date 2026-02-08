@@ -7,7 +7,7 @@ import po.misc.collections.asList
 import po.misc.context.component.Component
 import po.misc.context.tracable.TraceableContext
 import po.misc.data.logging.Loggable
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.StructuredLoggable
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.track
@@ -177,7 +177,7 @@ class ProceduralFlow<H: Component>(
         fun createEntry(structured: StructuredLoggable) : ProceduralEntry {
 
             return when (structured.topic) {
-                NotificationTopic.Warning -> {
+                Topic.Warning -> {
                     val resultWarning = StepResult.Warning(structured.asList())
                     ProceduralEntry(WarningSubject.Warning, structured.subject, resultWarning)
                 }
@@ -223,7 +223,7 @@ class ProceduralFlow<H: Component>(
         }
 
         private fun containsWarnings(entry: ProceduralEntry): List<Loggable>?{
-            val filtered =  entry.logRecords.filter { it.topic == NotificationTopic.Warning }
+            val filtered =  entry.logRecords.filter { it.topic == Topic.Warning }
             return filtered.ifEmpty {
                 null
             }

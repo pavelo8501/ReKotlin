@@ -8,7 +8,7 @@ import po.misc.context.component.ComponentID
 import po.misc.context.component.componentID
 import po.misc.context.component.initSubject
 import po.misc.context.log_provider.LogProvider
-import po.misc.data.logging.NotificationTopic
+import po.misc.data.logging.Topic
 import po.misc.data.logging.log_subject.startProcSubject
 import po.misc.data.logging.models.LogMessage
 import po.misc.data.logging.procedural.ProceduralRecord
@@ -125,7 +125,7 @@ class TestProceduralLog: LoggerTestBase(), LogProvider {
         assertIs<LogMessage>(startProcessMessage)
         assertEquals(startProcessSubject.subjectText, startProcessMessage.text)
 
-        val subComponent1Warning = assertNotNull( initSubjectMessage.logRecords.firstOrNull { it.topic == NotificationTopic.Warning })
+        val subComponent1Warning = assertNotNull( initSubjectMessage.logRecords.firstOrNull { it.topic == Topic.Warning })
         assertEquals(subComponent1,  subComponent1Warning.context)
 
         val subComponent2Warning =  assertNotNull(startProcessMessage.logRecords.firstOrNull { it.text.contains(warnText) } )

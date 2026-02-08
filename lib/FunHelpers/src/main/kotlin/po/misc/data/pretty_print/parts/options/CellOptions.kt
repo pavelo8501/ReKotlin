@@ -1,8 +1,11 @@
 package po.misc.data.pretty_print.parts.options
 
 import po.misc.data.PrettyPrint
+import po.misc.data.pretty_print.parts.common.BorderContainer
 import po.misc.data.pretty_print.parts.common.Separator
-import po.misc.data.pretty_print.parts.rendering.StyleParameters
+import po.misc.data.pretty_print.parts.common.TaggedSeparator
+import po.misc.data.pretty_print.parts.decorator.BorderPosition
+import po.misc.data.pretty_print.parts.render.StyleParameters
 import po.misc.data.strings.appendGroup
 import po.misc.data.styles.BGColour
 import po.misc.data.styles.Colour
@@ -27,7 +30,7 @@ class Options(
     override var style: Style = Style(),
     override var keyStyle : Style = Style(),
     private  val emptySpaceFiller: Char? = null
-): CellOptions, PrettyPrint, StyleParameters {
+): CellOptions, PrettyPrint, StyleParameters, BorderContainer {
 
     constructor(alignment: Align):this(width =0, alignment)
     constructor(alignment: Align, colour: Colour):this(width = 0, alignment, Style(colour = colour))
@@ -88,6 +91,12 @@ class Options(
 
     var spaceFiller: Separator = Separator(" ")
 
+
+    val topBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Top)
+    val bottomBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Bottom)
+    val leftBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Left)
+    val rightBorder : TaggedSeparator<BorderPosition> = TaggedSeparator(BorderPosition.Right)
+    override var separatorSet: List<TaggedSeparator<BorderPosition>> = listOf(topBorder, bottomBorder, leftBorder, rightBorder)
 
     var renderLeftBorder: Boolean = true
     var renderRightBorder: Boolean = true
@@ -202,5 +211,14 @@ class Options(
             appendGroup("Options[", "]", ::renderKey)
         }
 
-    companion object
+    companion object{
+        operator fun invoke(
+            orientation : Orientation = Orientation.Horizontal,
+            builderAction: Options.() -> Unit
+        ):Options{
+            val option = Options()
+            builderAction.invoke(option)
+            return option
+        }
+    }
 }

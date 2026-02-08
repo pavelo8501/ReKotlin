@@ -12,8 +12,8 @@ import po.misc.interfaces.named.Named
 
 
 abstract class FormattedTextBase(
-    override var plain: String = "",
-    override var styled: String = plain,
+    var plain: String = "",
+    var styled: String = plain,
 ):EditablePair, TextStyler{
 
     var overflowPrevention: Boolean = false
@@ -22,21 +22,21 @@ abstract class FormattedTextBase(
     internal var subEntries = mutableListOf<TextSpan>()
     internal val formattedTextSubEntries: List<FormattedText> get() = subEntries.filterIsInstance<FormattedText>()
 
-    internal val namedFormattedBacking = mutableListOf<NamedFormattedText>()
-    override val namedFormatted: List<NamedFormattedText> get() = namedFormattedBacking
+//    internal val namedFormattedBacking = mutableListOf<NamedFormattedText>()
+//    override val namedFormatted: List<NamedFormattedText> get() = namedFormattedBacking
 
     private var namedAlreadyJoined: Boolean = false
 
 
-    final override val totalPlainLength: Int get() {
-        val subSize = subEntries.sumOf {subEnty-> subEnty.plainLength }
-        return if(!namedAlreadyJoined){
-            val namedSize =  namedFormatted.sumOf {subNamed-> subNamed.plainLength }
-            namedSize + subSize + plainLength
-        }else{
-            subSize + plainLength
-        }
-    }
+//    final override val totalPlainLength: Int get() {
+//        val subSize = subEntries.sumOf {subEnty-> subEnty.plainLength }
+//        return if(!namedAlreadyJoined){
+//            val namedSize =  namedFormatted.sumOf {subNamed-> subNamed.plainLength }
+//            namedSize + subSize + plainLength
+//        }else{
+//            subSize + plainLength
+//        }
+//    }
 
     private fun joinRecursively(rootEntry:FormattedText, parameters: ListOptions, level: Int){
         for(entry in subEntries){
@@ -54,11 +54,6 @@ abstract class FormattedTextBase(
                 entry.joinRecursively(rootEntry, separator)
             }
         }
-    }
-
-    override fun append(plainText: String, styledText: String) {
-        appendPlain(plainText)
-        appendFormatted(styledText)
     }
 
     override fun prependPlain(prefix: String, separator:String): FormattedTextBase{
@@ -99,18 +94,22 @@ abstract class FormattedTextBase(
         }
         return this
     }
-
-    override fun append(other: TextSpan){
-        append(other.styled)
-    }
-    override fun prepend(other: TextSpan){
-        prepend(other.styled)
-    }
-
-    override fun prepend(plainText: String, styledText: String) {
-        prependPlain(plainText)
-        prependFormatted(styledText)
-    }
+//
+//    override fun append(other: TextSpan){
+//        append(other.plain, other.styled)
+//    }
+//
+//    override fun append(other: TextSpan, postfix: Postfix){
+//        append(other.styled, postfix.value)
+//    }
+//    override fun prepend(other: TextSpan){
+//        prepend(other.styled)
+//    }
+//
+//    override fun prepend(plainText: String, styledText: String) {
+//        prependPlain(plainText)
+//        prependFormatted(styledText)
+//    }
 
     fun styleFormatted(styleCode: StyleCode? = null): FormattedTextBase{
         if(styleCode != null){
@@ -123,10 +122,10 @@ abstract class FormattedTextBase(
      //   subEntries.add(FormattedText(plain, formatted))
         return this
     }
-    fun add(namedFormatted: NamedFormattedText):FormattedTextBase{
-        namedFormattedBacking.add(namedFormatted)
-        return this
-    }
+//    fun add(namedFormatted: NamedFormattedText):FormattedTextBase{
+//        namedFormattedBacking.add(namedFormatted)
+//        return this
+//    }
 
     override fun write(plainString: String, formattedString: String):FormattedTextBase{
         plain = plainString
@@ -134,14 +133,14 @@ abstract class FormattedTextBase(
         return this
     }
 
-    override fun change(plainText: String, styledText: String){
-        plain = plainText
-        styled = styledText
-    }
+//    override fun change(plainText: String, styledText: String){
+//        plain = plainText
+//        styled = styledText
+//    }
 
-    fun write(pair: NamedFormattedText):FormattedTextBase{
-        return write(pair.plain, pair.styled)
-    }
+//    fun write(pair: NamedFormattedText):FormattedTextBase{
+//        return write(pair.plain, pair.styled)
+//    }
     override fun writePlain(plainString: String):FormattedTextBase{
         plain = plainString
         styled = plainString
@@ -163,48 +162,49 @@ abstract class FormattedTextBase(
         //subEntries.forEach { add(it) }
         return this
     }
-    fun addAll(vararg namedFormatted: NamedFormattedText):FormattedTextBase{
-        namedFormattedBacking.addAll(namedFormatted)
-        return this
-    }
-    fun joinSubEntries(parameters: ListOptions): EditablePair {
-        val rootEntry = FormattedText(plain, styled)
-        joinRecursively(rootEntry, parameters, parameters.indent)
-        return rootEntry
-    }
-    fun joinSubEntries(parameters: ElementOptions):EditablePair {
-        val rootEntry = FormattedText(plain, styled)
-        joinRecursively(rootEntry, parameters.separator)
-        return rootEntry
-    }
-    override fun joinSubEntries(separator: String?):FormattedTextBase{
-        if(namedFormatted.isNotEmpty()){
-            val list = namedFormatted.map { it.name }
-            joinNamedEntries(list, separator)
-        }
-        if(subEntries.isNotEmpty()){
-            joinRecursively(this, separator?: SpecialChars.EMPTY)
-        }
-        return this
-    }
-    fun joinSubEntries(separatorAny: Any):FormattedTextBase = joinSubEntries(separator = separatorAny.toString())
+//    fun addAll(vararg namedFormatted: NamedFormattedText):FormattedTextBase{
+//        namedFormattedBacking.addAll(namedFormatted)
+//        return this
+//    }
+    fun joinSubEntries(parameters: ListOptions): MutableSpan {
+        val rootEntry = MutablePair(plain, styled)
 
-    override fun joinNamedEntries(namedList: List<Named>, separator: String? ):FormattedTextBase {
-        val filtered = namedFormatted.filter { it.name in  namedList }
-        if(filtered.isEmpty()){
-            return this
-        }
-        namedAlreadyJoined = true
-        val first = filtered.first()
-        val useSeparator = separator?:first.separator?.text?:SpecialChars.EMPTY
-        write(first)
-        if(filtered.size > 1){
-            filtered.drop(1).forEach {
-               // append(it, useSeparator)
-            }
-        }
-        return this
+       // joinRecursively(rootEntry, parameters, parameters.indent)
+        return rootEntry
     }
+    fun joinSubEntries(parameters: ElementOptions):MutableSpan {
+        val rootEntry = MutablePair(plain, styled)
+       // joinRecursively(rootEntry, parameters.separator)
+        return rootEntry
+    }
+//    override fun joinSubEntries(separator: String?):FormattedTextBase{
+//        if(namedFormatted.isNotEmpty()){
+//            val list = namedFormatted.map { it.name }
+//            joinNamedEntries(list, separator)
+//        }
+//        if(subEntries.isNotEmpty()){
+//            joinRecursively(this, separator?: SpecialChars.EMPTY)
+//        }
+//        return this
+//    }
+//    fun joinSubEntries(separatorAny: Any):FormattedTextBase = joinSubEntries(separator = separatorAny.toString())
+
+//    override fun joinNamedEntries(namedList: List<Named>, separator: String? ):FormattedTextBase {
+//        val filtered = namedFormatted.filter { it.name in  namedList }
+//        if(filtered.isEmpty()){
+//            return this
+//        }
+//        namedAlreadyJoined = true
+//        val first = filtered.first()
+//        val useSeparator = separator?:first.separator?.text?:SpecialChars.EMPTY
+//        write(first)
+//        if(filtered.size > 1){
+//            filtered.drop(1).forEach {
+//               // append(it, useSeparator)
+//            }
+//        }
+//        return this
+//    }
     override fun toString(): String = styled
 }
 
@@ -223,26 +223,26 @@ class FormattedText(
 
 }
 
-class NamedFormattedText(
-    val name: Named,
-    plain: String = "",
-    formatted: String = plain,
-    val separator: ExtendedString? = null
-): FormattedTextBase(plain, formatted){
-
-    override val plainLength: Int get() {
-        return plain.length + (separator?.displaySize?:0)
-    }
-}
-
-fun Named.createFormatted(plainText:String, formattedText: String = plainText):NamedFormattedText{
-    return NamedFormattedText(this, plainText, formattedText)
-}
-
-fun Named.createFormatted(separator: ExtendedString, plainText:String, formattedText: String = plainText):NamedFormattedText{
-    return NamedFormattedText(this, plainText, formattedText, separator)
-}
-
-fun Named.createFormatted(pair: TextSpan):NamedFormattedText{
-    return NamedFormattedText(this, pair.plain, pair.styled)
-}
+//class NamedFormattedText(
+//    val name: Named,
+//    plain: String = "",
+//    formatted: String = plain,
+//    val separator: ExtendedString? = null
+//): FormattedTextBase(plain, formatted){
+//
+//    override val plainLength: Int get() {
+//        return plain.length + (separator?.displaySize?:0)
+//    }
+//}
+//
+//fun Named.createFormatted(plainText:String, formattedText: String = plainText):NamedFormattedText{
+//    return NamedFormattedText(this, plainText, formattedText)
+//}
+//
+//fun Named.createFormatted(separator: ExtendedString, plainText:String, formattedText: String = plainText):NamedFormattedText{
+//    return NamedFormattedText(this, plainText, formattedText, separator)
+//}
+//
+//fun Named.createFormatted(pair: TextSpan):NamedFormattedText{
+//    return NamedFormattedText(this, pair.plain, pair.styled)
+//}

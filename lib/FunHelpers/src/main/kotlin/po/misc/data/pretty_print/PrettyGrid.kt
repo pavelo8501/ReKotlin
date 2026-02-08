@@ -2,13 +2,11 @@ package po.misc.data.pretty_print
 
 
 import po.misc.callbacks.callable.CallableCollection
-import po.misc.callbacks.callable.ReceiverCallable
 import po.misc.counters.SimpleJournal
 import po.misc.data.ifUndefined
 import po.misc.data.logging.Verbosity
 import po.misc.data.pretty_print.dsl.RenderConfigurator
 import po.misc.data.pretty_print.parts.common.RenderData
-import po.misc.data.pretty_print.parts.common.RenderMarker
 import po.misc.data.pretty_print.parts.options.CommonRowOptions
 import po.misc.data.pretty_print.parts.options.PrettyHelper
 import po.misc.data.pretty_print.parts.options.RowOptions
@@ -18,8 +16,9 @@ import po.misc.data.pretty_print.parts.loader.DataLoader
 import po.misc.data.pretty_print.parts.options.CompositionTrace
 import po.misc.data.pretty_print.parts.options.GridID
 import po.misc.data.pretty_print.parts.options.TemplateData
-import po.misc.data.pretty_print.parts.rendering.KeyRenderParameters
-import po.misc.data.pretty_print.parts.rendering.RenderParameters
+import po.misc.data.pretty_print.parts.render.KeyParameters
+import po.misc.data.pretty_print.parts.render.RenderCanvas
+import po.misc.data.pretty_print.parts.render.RenderParameters
 import po.misc.data.pretty_print.templates.TemplateCompanion
 import po.misc.data.styles.Colour
 import po.misc.data.styles.SpecialChars
@@ -50,7 +49,7 @@ sealed class PrettyGridBase<T>(
 
     abstract val renderPlan: RenderPlan<*, T>
     abstract val enabled: Boolean
-    val keyParameters: KeyRenderParameters get() =  renderPlan.keyParams
+    val keyParameters: KeyParameters get() =  renderPlan.keyParams
 
     internal val prettyRows: MutableList<PrettyRow<T>> = mutableListOf()
     internal val valueRows : MutableList<PrettyValueRow<T, *>>  = mutableListOf()
@@ -153,7 +152,7 @@ sealed class PrettyGridBase<T>(
     }
 
 
-    fun render(renderData: RenderData.Companion,  receiver:T):RenderData{
+    fun render(renderData: RenderData.Companion,  receiver:T): RenderCanvas{
         return renderPlan.render(receiver)
     }
 
@@ -279,7 +278,7 @@ class PrettyValueGrid<S, T>(
         return render(value, opts)
     }
 
-     fun RenderParameters.renderInScope(source: S): RenderData{
+     fun RenderParameters.renderInScope(source: S): RenderCanvas{
         val ownLoader  = this@PrettyValueGrid.dataLoader
          ClassResolver.instanceMeta(this@renderInScope).output(Colour.CyanBright)
          val values = ownLoader.resolveList(source)

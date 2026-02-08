@@ -43,14 +43,14 @@ class ExecutionTimeStamp(
     }
 
     fun stopTimer(): ExecutionTimeStamp {
-        endTimeUtc = nowTimeUtc()
+        endTimeUtc = nowTime()
         endTime = System.nanoTime()
         elapsed = (endTime - startTime) / 1_000_000f
         return this
     }
 
     fun startTimer():ExecutionTimeStamp {
-        startTimeUtc = nowTimeUtc()
+        startTimeUtc = nowTime()
         startTime = System.nanoTime()
         return this
     }

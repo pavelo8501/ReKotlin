@@ -50,7 +50,7 @@ class TestTemplatePlaceholder : PrettyTestBase() {
             headedRow(staticText)
         }
         val render =  assertDoesNotThrow { grid.render(record) }
-        render.output(enableOutput)
+        render.output(verbosity)
         assertNotNull(grid.renderPlan.getRenderable<TemplatePlaceholder<ForeignClass>, ForeignClass>())
         assertFalse("Render should not have ${foreign.parameter1}") { render.contains(foreign.parameter1) }
     }
@@ -69,7 +69,7 @@ class TestTemplatePlaceholder : PrettyTestBase() {
                 renderWith(foreignTemplate, foreign)
             }
         }
-        render.output(enableOutput)
+        render.output(verbosity)
         val lines = render.lines()
         assertEquals(3, lines.size)
         assertTrue("Built PrintableRecord row not rendered") { lines[0].contains(record.name)  }
@@ -128,7 +128,7 @@ class TestTemplatePlaceholder : PrettyTestBase() {
         render = grid.render(record) {
             renderWith(otherForeignTemplate, foreignClass)
         }
-        render.output(enableOutput)
+        render.output(verbosity)
         assertNotNull(grid.renderPlan[RenderableType.Placeholder].firstOrNull()) { renderable ->
             assertIs<TemplatePlaceholder<ForeignClass>>(renderable)
             assertEquals(Row.Row2, renderable.delegate?.templateID)
@@ -154,7 +154,7 @@ class TestTemplatePlaceholder : PrettyTestBase() {
             renderWith(foreignTemplate, foreignClass)
             renderWith(otherTemplate, otherClass)
         }
-        render.output(enableOutput)
+        render.output(verbosity)
         val renderedLines = render.lines()
         assertEquals(2, renderedLines.size)
         assertEquals(true, placeholders[0].enabled)
